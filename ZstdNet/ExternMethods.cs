@@ -10,7 +10,11 @@ namespace ZstdNet
 
 		[DllImport(DllName)]
 		public static extern size_t ZDICT_trainFromBuffer(byte[] dictBuffer, size_t dictBufferCapacity, byte[] samplesBuffer, size_t[] samplesSizes, uint nbSamples);
-		
+		[DllImport(DllName)]
+		public static extern uint ZDICT_isError(size_t code);
+		[DllImport(DllName)]
+		public static extern IntPtr ZDICT_getErrorName(size_t code);
+
 		[DllImport(DllName)]
 		public static extern IntPtr ZSTD_createCCtx();
 		[DllImport(DllName)]

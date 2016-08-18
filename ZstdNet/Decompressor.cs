@@ -7,9 +7,9 @@ namespace ZstdNet
 	{
 		public Decompressor(byte[] dict = null)
 		{
-			dctx = ExternMethods.ZSTD_createDCtx().EnsureSuccess();
+			dctx = ExternMethods.ZSTD_createDCtx().EnsureZstdSuccess();
 			if (dict != null)
-				ddict = ExternMethods.ZSTD_createDDict(dict, (size_t)dict.Length).EnsureSuccess();
+				ddict = ExternMethods.ZSTD_createDDict(dict, (size_t)dict.Length).EnsureZstdSuccess();
 		}
 
 		~Decompressor()
@@ -57,7 +57,7 @@ namespace ZstdNet
 				else
 					dstSize = ExternMethods.ZSTD_decompress_usingDDict(dctx, dst, dstCapacity, src, (size_t) data.Count, ddict);
 			}
-			dstSize.EnsureSuccess();
+			dstSize.EnsureZstdSuccess();
 
 			if (dstSize != dstCapacity)
 				throw new ZstdException("Invalid decompressed size specified in the data");

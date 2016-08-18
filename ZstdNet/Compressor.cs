@@ -9,9 +9,9 @@ namespace ZstdNet
 		{
 			this.compressionLevel = compressionLevel;
 
-			cctx = ExternMethods.ZSTD_createCCtx().EnsureSuccess();
+			cctx = ExternMethods.ZSTD_createCCtx().EnsureZstdSuccess();
 			if (dict != null)
-				cdict = ExternMethods.ZSTD_createCDict(dict, (size_t)dict.Length, compressionLevel).EnsureSuccess();
+				cdict = ExternMethods.ZSTD_createCDict(dict, (size_t)dict.Length, compressionLevel).EnsureZstdSuccess();
 		}
 
 		public const int DefaultCompressionLevel = 3; // Used by zstd utility by default
@@ -55,7 +55,7 @@ namespace ZstdNet
 				else
 					dstSize = ExternMethods.ZSTD_compress_usingCDict(cctx, dst, dstCapacity, src, (size_t)data.Count, cdict);
 			}
-			dstSize.EnsureSuccess();
+			dstSize.EnsureZstdSuccess();
 
 			var result = new byte[dstSize];
 			Array.Copy(dst, result, (int) dstSize);

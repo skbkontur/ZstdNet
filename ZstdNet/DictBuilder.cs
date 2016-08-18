@@ -12,7 +12,7 @@ namespace ZstdNet
 			var samplesBuffer = samples.SelectMany(sample => sample).ToArray();
 			var samplesSizes = samples.Select(sample => (size_t)sample.Length).ToArray();
 			var dictBuffer = new byte[dictCapacity];
-			var dictSize = ExternMethods.ZDICT_trainFromBuffer(dictBuffer, (size_t)dictCapacity, samplesBuffer, samplesSizes, (uint)samples.Count).EnsureSuccess();
+			var dictSize = ExternMethods.ZDICT_trainFromBuffer(dictBuffer, (size_t)dictCapacity, samplesBuffer, samplesSizes, (uint)samples.Count).EnsureZdictSuccess();
 
 			var result = new byte[dictSize];
 			Array.Copy(dictBuffer, result, (int)dictSize);

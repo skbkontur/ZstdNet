@@ -6,14 +6,21 @@ namespace ZstdNet
 {
 	internal static class ReturnValueExtensions
 	{
-		public static size_t EnsureSuccess(this size_t returnValue)
+		public static size_t EnsureZdictSuccess(this size_t returnValue)
+		{
+			if(ExternMethods.ZDICT_isError(returnValue) != 0)
+				throw new ZstdException(Marshal.PtrToStringAnsi(ExternMethods.ZDICT_getErrorName(returnValue)));
+			return returnValue;
+		}
+
+		public static size_t EnsureZstdSuccess(this size_t returnValue)
 		{
 			if(ExternMethods.ZSTD_isError(returnValue) != 0)
 				throw new ZstdException(Marshal.PtrToStringAnsi(ExternMethods.ZSTD_getErrorName(returnValue)));
 			return returnValue;
 		}
 
-		public static IntPtr EnsureSuccess(this IntPtr returnValue)
+		public static IntPtr EnsureZstdSuccess(this IntPtr returnValue)
 		{
 			if(returnValue == IntPtr.Zero)
 				throw new ZstdException("Failed to create a structure");
