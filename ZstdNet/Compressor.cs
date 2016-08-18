@@ -41,6 +41,9 @@ namespace ZstdNet
 
 		public byte[] Wrap(ArraySegment<byte> data)
 		{
+			if (data.Count == 0)
+				return new byte[0];
+
 			var dstCapacity = ExternMethods.ZSTD_compressBound((size_t)data.Count);
 			var dst = new byte[dstCapacity];
 

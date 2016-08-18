@@ -124,6 +124,75 @@ namespace ZstdNet.Tests
 			CollectionAssert.AreEqual(data, decompressed);
 		}
 
+		[Test]
+		public void CompressAndDecompress_workCorrectly_onEmptyBuffer()
+		{
+			var data = new byte[0];
+
+			byte[] compressed;
+			using(var compressor = new Compressor())
+				compressed = compressor.Wrap(data);
+			byte[] decompressed;
+			using(var decompressor = new Decompressor())
+				decompressed = decompressor.Unwrap(compressed);
+
+			CollectionAssert.AreEqual(data, decompressed);
+		}
+
+		[Test]
+		public void CompressAndDecompress_workCorrectly_onOneByteBuffer()
+		{
+			var data = new byte[] { 42 };
+
+			byte[] compressed;
+			using(var compressor = new Compressor())
+				compressed = compressor.Wrap(data);
+			byte[] decompressed;
+			using(var decompressor = new Decompressor())
+				decompressed = decompressor.Unwrap(compressed);
+
+			CollectionAssert.AreEqual(data, decompressed);
+		}
+
+		[Test]
+		public void CompressAndDecompress_workCorrectly_onArraysOfDifferentSizes()
+		{
+			using (var compressor = new Compressor())
+			using (var decompressor = new Decompressor())
+			{
+				for (var i = 2; i < 100000; i += 3000)
+				{
+					var data = GenerateBuffer(i);
+
+					var decompressed = decompressor.Unwrap(compressor.Wrap(data));
+
+					CollectionAssert.AreEqual(data, decompressed);
+				}
+			}
+		}
+
+		[Test]
+		public void CompressAndDecompress_workCorrectly_ifDifferentInstancesRunInDifferentThreads()
+		{
+			Enumerable.Range(0, 100)
+				.AsParallel().WithDegreeOfParallelism(50)
+				.ForAll(_ =>
+				{
+					using (var compressor = new Compressor())
+					using (var decompressor = new Decompressor())
+					{
+						for (var i = 2; i < 100000; i += 30000)
+						{
+							var data = GenerateBuffer(i);
+
+							var decompressed = decompressor.Unwrap(compressor.Wrap(data));
+
+							CollectionAssert.AreEqual(data, decompressed);
+						}
+					}
+				});
+		}
+
 		private static byte[] BuildDictionary()
 		{
 			return DictBuilder.TrainFromBuffer(Enumerable.Range(0, 5).Select(_ => GenerateSample()).ToArray(), 1024);
@@ -134,6 +203,13 @@ namespace ZstdNet.Tests
 			return Enumerable.Range(0, 3)
 				.SelectMany(_ => Encoding.ASCII.GetBytes(string.Format("['a': 'constant_field', 'b': '{0}', 'c': {1}, 'd': '{2} constant field']",
 					Random.Next(), Random.Next(), Random.Next(1) == 1 ? "almost" : "sometimes")))
+				.ToArray();
+		}
+
+		private static byte[] GenerateBuffer(int size)
+		{
+			return Enumerable.Range(0, size)
+				.Select(i => unchecked((byte)i))
 				.ToArray();
 		}
 

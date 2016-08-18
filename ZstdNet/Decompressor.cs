@@ -40,6 +40,9 @@ namespace ZstdNet
 			// NOTE: Unwrap now can be used only on trusted data,
 			// NOTE: because we can't trust ZSTD_getDecompressedSize(), and it can be very big (https://github.com/Cyan4973/zstd/blob/master/lib/zstd.h#L83).
 
+			if(data.Count == 0)
+				return new byte[0];
+
 			size_t dstCapacity, dstSize;
 			byte[] dst;
 			using(var src = new ArraySegmentPtr(data))
