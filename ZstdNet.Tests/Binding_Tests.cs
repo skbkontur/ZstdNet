@@ -77,6 +77,31 @@ namespace ZstdNet.Tests
 		}
 
 		[Test]
+		public void Decompress_throwsZstdException_onMalformedDecompressedSize([Values(false, true)] bool useDictionary)
+		{
+			var data = GenerateSample();
+			var dict = useDictionary ? BuildDictionary() : null;
+			byte[] compressed;
+			using(var compressor = new Compressor(dict))
+				compressed = compressor.Wrap(data);
+
+			var frameHeader = compressed[4]; // Ensure that we malform decompressed size in the right place
+			if (useDictionary)
+			{
+				Assert.AreEqual(frameHeader, 0x63);
+				compressed[9]--;
+			}
+			else
+			{
+				Assert.AreEqual(frameHeader, 0x60);
+				compressed[5]--;
+			}
+			// Thus, ZSTD_getDecompressedSize will return size that is one byte lesser than actual
+			using(var decompressor = new Decompressor(dict))
+				Assert.Throws<ZstdException>(() => decompressor.Unwrap(compressed));
+		}
+
+		[Test]
 		public void Decompress_throwsArgumentOutOfRangeException_onTooBigData([Values(false, true)] bool useDictionary)
 		{
 			var data = GenerateSample();
