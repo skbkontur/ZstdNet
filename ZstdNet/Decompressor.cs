@@ -61,7 +61,15 @@ namespace ZstdNet
 				throw new ArgumentOutOfRangeException(string.Format("Decompressed size is too big ({0} bytes > authorized {1} bytes)", dstCapacity, maxDecompressedSize));
 			var dst = new byte[dstCapacity];
 
-			var dstSize = Unwrap(src, dst, 0);
+			int dstSize;
+			try
+			{
+				dstSize = Unwrap(src, dst, 0);
+			}
+			catch (InsufficientMemoryException)
+			{
+				throw new ZstdException("Invalid decompressed size");
+			}
 
 			if ((int)dstCapacity != dstSize)
 				throw new ZstdException("Invalid decompressed size specified in the data");

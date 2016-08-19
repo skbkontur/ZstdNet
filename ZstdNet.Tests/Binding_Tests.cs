@@ -115,7 +115,7 @@ namespace ZstdNet.Tests
 		}
 
 		[Test]
-		public void Compress_worksWithArraySegment([Values(false, true)] bool useDictionary)
+		public void Compress_canRead_fromArraySegment([Values(false, true)] bool useDictionary)
 		{
 			var data = GenerateSample();
 			var segment = new ArraySegment<byte>(data, 2, data.Length - 5);
@@ -132,7 +132,7 @@ namespace ZstdNet.Tests
 		}
 
 		[Test]
-		public void Decompress_worksWithArraySegment([Values(false, true)] bool useDictionary)
+		public void Decompress_canRead_fromArraySegment([Values(false, true)] bool useDictionary)
 		{
 			var data = GenerateSample();
 			var dict = useDictionary ? BuildDictionary() : null;
@@ -148,6 +148,69 @@ namespace ZstdNet.Tests
 				decompressed = decompressor.Unwrap(segment);
 
 			CollectionAssert.AreEqual(data, decompressed);
+		}
+
+		[Test]
+		public void Compress_canWrite_toGivenBuffer([Values(false, true)] bool useDictionary)
+		{
+			var data = GenerateSample();
+			var dict = useDictionary ? BuildDictionary() : null;
+			var compressed = new byte[1000];
+			const int offset = 54;
+
+			int compressedSize;
+			using(var compressor = new Compressor(dict))
+				compressedSize = compressor.Wrap(data, compressed, offset);
+
+			byte[] decompressed;
+			using(var decompressor = new Decompressor(dict))
+				decompressed = decompressor.Unwrap(compressed.Skip(offset).Take(compressedSize).ToArray());
+			CollectionAssert.AreEqual(data, decompressed);
+		}
+
+		[Test]
+		public void Decompress_canWrite_toGivenBuffer([Values(false, true)] bool useDictionary)
+		{
+			var data = GenerateSample();
+			var dict = useDictionary ? BuildDictionary() : null;
+			byte[] compressed;
+			using(var compressor = new Compressor(dict))
+				compressed = compressor.Wrap(data);
+			var decompressed = new byte[1000];
+			const int offset = 54;
+
+			int decompressedSize;
+			using(var decompressor = new Decompressor(dict))
+				decompressedSize = decompressor.Unwrap(compressed, decompressed, offset);
+
+			CollectionAssert.AreEqual(data, decompressed.Skip(offset).Take(decompressedSize));
+		}
+
+		[Test]
+		public void Compress_throwsInsufficientMemoryException_whenDestinationBufferIsTooSmall([Values(false, true)] bool useDictionary)
+		{
+			var data = GenerateSample();
+			var dict = useDictionary ? BuildDictionary() : null;
+			var compressed = new byte[20];
+			const int offset = 4;
+
+			using (var compressor = new Compressor(dict))
+				Assert.Throws<InsufficientMemoryException>(() => compressor.Wrap(data, compressed, offset));
+		}
+
+		[Test]
+		public void Decompress_throwsInsufficientMemoryException_whenDestinationBufferIsTooSmall([Values(false, true)] bool useDictionary)
+		{
+			var data = GenerateSample();
+			var dict = useDictionary ? BuildDictionary() : null;
+			byte[] compressed;
+			using(var compressor = new Compressor(dict))
+				compressed = compressor.Wrap(data);
+			var decompressed = new byte[20];
+			const int offset = 4;
+
+			using (var decompressor = new Decompressor(dict))
+				Assert.Throws<InsufficientMemoryException>(() => decompressor.Unwrap(compressed, decompressed, offset));
 		}
 
 		[Test]
