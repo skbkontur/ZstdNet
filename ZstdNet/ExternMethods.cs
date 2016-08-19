@@ -1,12 +1,20 @@
 ﻿using System;
 using System.Runtime.InteropServices;
+#if BUILD64
 using size_t = System.UInt64;
+#else
+using size_t = System.UInt32;
+#endif
 
 namespace ZstdNet
 {
 	internal static class ExternMethods
 	{
+#if BUILD64
 		private const string DllName = "zstdlib_x64.dll";
+#else
+		private const string DllName = "zstdlib_x86.dll";
+#endif
 
 		[DllImport(DllName)]
 		public static extern size_t ZDICT_trainFromBuffer(byte[] dictBuffer, size_t dictBufferCapacity, byte[] samplesBuffer, size_t[] samplesSizes, uint nbSamples);

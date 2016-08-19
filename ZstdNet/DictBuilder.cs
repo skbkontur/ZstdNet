@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+#if BUILD64
 using size_t = System.UInt64;
+#else
+using size_t = System.UInt32;
+#endif
 
 namespace ZstdNet
 {

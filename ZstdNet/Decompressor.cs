@@ -1,5 +1,9 @@
 ﻿using System;
+#if BUILD64
 using size_t = System.UInt64;
+#else
+using size_t = System.UInt32;
+#endif
 
 namespace ZstdNet
 {
@@ -49,7 +53,8 @@ namespace ZstdNet
 			if(data.Count == 0)
 				return new byte[0];
 
-			size_t dstCapacity, dstSize;
+			ulong dstCapacity;
+			size_t dstSize;
 			byte[] dst;
 			using(var src = new ArraySegmentPtr(data))
 			{
@@ -61,9 +66,9 @@ namespace ZstdNet
 				dst = new byte[dstCapacity];
 
 				if (ddict == IntPtr.Zero)
-					dstSize = ExternMethods.ZSTD_decompressDCtx(dctx, dst, dstCapacity, src, (size_t) data.Count);
+					dstSize = ExternMethods.ZSTD_decompressDCtx(dctx, dst, (size_t)dstCapacity, src, (size_t) data.Count);
 				else
-					dstSize = ExternMethods.ZSTD_decompress_usingDDict(dctx, dst, dstCapacity, src, (size_t) data.Count, ddict);
+					dstSize = ExternMethods.ZSTD_decompress_usingDDict(dctx, dst, (size_t)dstCapacity, src, (size_t) data.Count, ddict);
 			}
 			dstSize.EnsureZstdSuccess();
 
