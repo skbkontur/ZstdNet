@@ -38,26 +38,27 @@ namespace ZstdNet
 
 		private bool disposed = false;
 
-		public byte[] Wrap(byte[] data)
+		public byte[] Wrap(byte[] src)
 		{
-			return Wrap(new ArraySegment<byte>(data));
+			return Wrap(new ArraySegment<byte>(src));
 		}
 
-		public byte[] Wrap(ArraySegment<byte> data)
+		public byte[] Wrap(ArraySegment<byte> src)
 		{
-			if (data.Count == 0)
+			if (src.Count == 0)
 				return new byte[0];
 
-			var dstCapacity = ExternMethods.ZSTD_compressBound((size_t)data.Count);
+			var dstCapacity = ExternMethods.ZSTD_compressBound((size_t)src.Count);
 			var dst = new byte[dstCapacity];
 
 			size_t dstSize;
-			using (var src = new ArraySegmentPtr(data))
+			using (var srcPtr = new ArraySegmentPtr(src))
+			using (var dstPtr = new ArraySegmentPtr(dst))
 			{
 				if (cdict == IntPtr.Zero)
-					dstSize = ExternMethods.ZSTD_compressCCtx(cctx, dst, dstCapacity, src, (size_t)data.Count, compressionLevel);
+					dstSize = ExternMethods.ZSTD_compressCCtx(cctx, dstPtr, dstCapacity, srcPtr, (size_t)src.Count, compressionLevel);
 				else
-					dstSize = ExternMethods.ZSTD_compress_usingCDict(cctx, dst, dstCapacity, src, (size_t)data.Count, cdict);
+					dstSize = ExternMethods.ZSTD_compress_usingCDict(cctx, dstPtr, dstCapacity, srcPtr, (size_t)src.Count, cdict);
 			}
 			dstSize.EnsureZstdSuccess();
 
@@ -66,6 +67,33 @@ namespace ZstdNet
 			var result = new byte[dstSize];
 			Array.Copy(dst, result, (int) dstSize);
 			return result;
+		}
+
+		public int Wrap(byte[] src, byte[] dst, int offset)
+		{
+			return Wrap(new ArraySegment<byte>(src), dst, offset);
+		}
+
+		public int Wrap(ArraySegment<byte> src, byte[] dst, int offset)
+		{
+			if (offset < 0 || offset >= dst.Length)
+				throw new ArgumentOutOfRangeException(nameof(offset));
+
+			if (src.Count == 0)
+				return 0;
+
+			var dstCapacity = (size_t)(dst.Length - offset);
+			size_t dstSize;
+			using(var srcPtr = new ArraySegmentPtr(src))
+			using(var dstPtr = new ArraySegmentPtr(dst))
+			{
+				if(cdict == IntPtr.Zero)
+					dstSize = ExternMethods.ZSTD_compressCCtx(cctx, dstPtr, dstCapacity, srcPtr, (size_t)src.Count, compressionLevel);
+				else
+					dstSize = ExternMethods.ZSTD_compress_usingCDict(cctx, dstPtr, dstCapacity, srcPtr, (size_t)src.Count, cdict);
+			}
+			dstSize.EnsureZstdSuccess();
+			return (int)dstSize;
 		}
 
 		private readonly IntPtr cctx, cdict;

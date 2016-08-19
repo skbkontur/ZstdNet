@@ -34,47 +34,68 @@ namespace ZstdNet
 
 		private bool disposed = false;
 
-		public byte[] Unwrap(byte[] data, size_t maxDecompressedSize = size_t.MaxValue)
+		public byte[] Unwrap(byte[] src, size_t maxDecompressedSize = size_t.MaxValue)
 		{
-			return Unwrap(new ArraySegment<byte>(data), maxDecompressedSize);
+			return Unwrap(new ArraySegment<byte>(src), maxDecompressedSize);
 		}
 
-		public byte[] Unwrap(ArraySegment<byte> data, size_t maxDecompressedSize = size_t.MaxValue)
+		public byte[] Unwrap(ArraySegment<byte> src, size_t maxDecompressedSize = size_t.MaxValue)
 		{
-			/* NOTES about ZSTD_getDecompressedSize():
-
-			- Decompressed size can be very large (64-bits value),
-			potentially larger than what local system can handle as a single memory segment.
-			In which case, it's necessary to use streaming mode to decompress data.
-
-			- Decompressed size could be wrong or intentionally modified!
-			Always ensure result fits within application's authorized limits! */
-
-			if(data.Count == 0)
+			if(src.Count == 0)
 				return new byte[0];
 
 			ulong dstCapacity;
 			size_t dstSize;
 			byte[] dst;
-			using(var src = new ArraySegmentPtr(data))
+			using(var srcPtr = new ArraySegmentPtr(src))
 			{
-				dstCapacity = ExternMethods.ZSTD_getDecompressedSize(src, (size_t) data.Count);
+				dstCapacity = ExternMethods.ZSTD_getDecompressedSize(srcPtr, (size_t) src.Count);
 				if(dstCapacity == 0)
-					throw new ZstdException("Can't decompress data with unspecified decompressed size (streaming mode is not implemented)");
+					throw new ZstdException("Can't create buffer for data with unspecified decompressed size (provide your own buffer to Unwrap instead)");
 				if(dstCapacity > maxDecompressedSize)
 					throw new ArgumentOutOfRangeException(string.Format("Decompressed size is too big ({0} bytes > authorized {1} bytes)", dstCapacity, maxDecompressedSize));
 				dst = new byte[dstCapacity];
 
-				if (ddict == IntPtr.Zero)
-					dstSize = ExternMethods.ZSTD_decompressDCtx(dctx, dst, (size_t)dstCapacity, src, (size_t) data.Count);
-				else
-					dstSize = ExternMethods.ZSTD_decompress_usingDDict(dctx, dst, (size_t)dstCapacity, src, (size_t) data.Count, ddict);
+				using (var dstPtr = new ArraySegmentPtr(dst))
+				{
+					if (ddict == IntPtr.Zero)
+						dstSize = ExternMethods.ZSTD_decompressDCtx(dctx, dstPtr, (size_t) dstCapacity, srcPtr, (size_t) src.Count);
+					else
+						dstSize = ExternMethods.ZSTD_decompress_usingDDict(dctx, dstPtr, (size_t) dstCapacity, srcPtr, (size_t) src.Count, ddict);
+				}
 			}
 			dstSize.EnsureZstdSuccess();
 
 			if (dstSize != dstCapacity)
 				throw new ZstdException("Invalid decompressed size specified in the data");
 			return dst;
+		}
+
+		public int Unwrap(byte[] src, byte[] dst, int offset)
+		{
+			return Unwrap(new ArraySegment<byte>(src), dst, offset);
+		}
+
+		public int Unwrap(ArraySegment<byte> src, byte[] dst, int offset)
+		{
+			if(offset < 0 || offset >= dst.Length)
+				throw new ArgumentOutOfRangeException(nameof(offset));
+
+			if (src.Count == 0)
+				return 0;
+
+			var dstCapacity = (size_t)(dst.Length - offset);
+			size_t dstSize;
+			using(var srcPtr = new ArraySegmentPtr(src))
+			using(var dstPtr = new ArraySegmentPtr(dst))
+			{
+				if(ddict == IntPtr.Zero)
+					dstSize = ExternMethods.ZSTD_decompressDCtx(dctx, dstPtr, dstCapacity, srcPtr, (size_t)src.Count);
+				else
+					dstSize = ExternMethods.ZSTD_decompress_usingDDict(dctx, dstPtr, dstCapacity, srcPtr, (size_t)src.Count, ddict);
+			}
+			dstSize.EnsureZstdSuccess();
+			return (int)dstSize;
 		}
 
 		private readonly IntPtr dctx, ddict;

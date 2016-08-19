@@ -5,6 +5,8 @@ namespace ZstdNet
 {
 	internal class ArraySegmentPtr : IDisposable
 	{
+		public ArraySegmentPtr(byte[] arr): this(new ArraySegment<byte>(arr)) { }
+
 		public ArraySegmentPtr(ArraySegment<byte> segment)
 		{
 			handle = GCHandle.Alloc(segment.Array, GCHandleType.Pinned);

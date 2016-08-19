@@ -34,23 +34,23 @@ namespace ZstdNet
 		public static extern size_t ZSTD_freeDCtx(IntPtr cctx);
 
 		[DllImport(DllName)]
-		public static extern size_t ZSTD_compressCCtx(IntPtr ctx, byte[] dst, size_t dstCapacity, IntPtr src, size_t srcSize, int compressionLevel);
+		public static extern size_t ZSTD_compressCCtx(IntPtr ctx, IntPtr dst, size_t dstCapacity, IntPtr src, size_t srcSize, int compressionLevel);
 		[DllImport(DllName)]
-		public static extern size_t ZSTD_decompressDCtx(IntPtr ctx, byte[] dst, size_t dstCapacity, IntPtr src, size_t srcSize);
+		public static extern size_t ZSTD_decompressDCtx(IntPtr ctx, IntPtr dst, size_t dstCapacity, IntPtr src, size_t srcSize);
 
 		[DllImport(DllName)]
 		public static extern IntPtr ZSTD_createCDict(byte[] dict, size_t dictSize, int compressionLevel);
 		[DllImport(DllName)]
 		public static extern size_t ZSTD_freeCDict(IntPtr cdict);
 		[DllImport(DllName)]
-		public static extern size_t ZSTD_compress_usingCDict(IntPtr cctx, byte[] dst, size_t dstCapacity, IntPtr src, size_t srcSize, IntPtr cdict);
+		public static extern size_t ZSTD_compress_usingCDict(IntPtr cctx, IntPtr dst, size_t dstCapacity, IntPtr src, size_t srcSize, IntPtr cdict);
 
 		[DllImport(DllName)]
 		public static extern IntPtr ZSTD_createDDict(byte[] dict, size_t dictSize);
 		[DllImport(DllName)]
 		public static extern size_t ZSTD_freeDDict(IntPtr ddict);
 		[DllImport(DllName)]
-		public static extern size_t ZSTD_decompress_usingDDict(IntPtr dctx, byte[] dst, size_t dstCapacity, IntPtr src, size_t srcSize, IntPtr ddict);
+		public static extern size_t ZSTD_decompress_usingDDict(IntPtr dctx, IntPtr dst, size_t dstCapacity, IntPtr src, size_t srcSize, IntPtr ddict);
 
 		[DllImport(DllName)]
 		public static extern ulong ZSTD_getDecompressedSize(IntPtr src, size_t srcSize);
