@@ -22,10 +22,15 @@ namespace ZstdNet
 
 		~Compressor()
 		{
-			Dispose();
+			Dispose(false);
 		}
 
 		public void Dispose()
+		{
+			Dispose(true);
+		}
+
+		private void Dispose(bool disposing)
 		{
 			if (disposed)
 				return;
@@ -34,6 +39,9 @@ namespace ZstdNet
 			if (cdict != IntPtr.Zero)
 				ExternMethods.ZSTD_freeCDict(cdict);
 			ExternMethods.ZSTD_freeCCtx(cctx);
+
+			if (disposing)
+				GC.SuppressFinalize(this);
 		}
 
 		private bool disposed = false;
