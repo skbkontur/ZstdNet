@@ -14,6 +14,8 @@ namespace ZstdNet
 			var dictBuffer = new byte[dictCapacity];
 			var dictSize = ExternMethods.ZDICT_trainFromBuffer(dictBuffer, (size_t)dictCapacity, samplesBuffer, samplesSizes, (uint)samples.Count).EnsureZdictSuccess();
 
+			if (dictCapacity == (int)dictSize)
+				return dictBuffer;
 			var result = new byte[dictSize];
 			Array.Copy(dictBuffer, result, (int)dictSize);
 			return result;

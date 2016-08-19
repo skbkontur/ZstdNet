@@ -57,6 +57,8 @@ namespace ZstdNet
 			}
 			dstSize.EnsureZstdSuccess();
 
+			if(dstCapacity == dstSize)
+				return dst;
 			var result = new byte[dstSize];
 			Array.Copy(dst, result, (int) dstSize);
 			return result;
