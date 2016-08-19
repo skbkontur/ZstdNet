@@ -13,23 +13,26 @@ namespace ZstdNet
 		public static size_t EnsureZdictSuccess(this size_t returnValue)
 		{
 			if(ExternMethods.ZDICT_isError(returnValue) != 0)
-				ThrowException(Marshal.PtrToStringAnsi(ExternMethods.ZDICT_getErrorName(returnValue)));
+				ThrowException(returnValue, Marshal.PtrToStringAnsi(ExternMethods.ZDICT_getErrorName(returnValue)));
 			return returnValue;
 		}
 
 		public static size_t EnsureZstdSuccess(this size_t returnValue)
 		{
 			if(ExternMethods.ZSTD_isError(returnValue) != 0)
-				ThrowException(Marshal.PtrToStringAnsi(ExternMethods.ZSTD_getErrorName(returnValue)));
+				ThrowException(returnValue, Marshal.PtrToStringAnsi(ExternMethods.ZSTD_getErrorName(returnValue)));
 			return returnValue;
 		}
 
-		private static void ThrowException(string message)
+		private static void ThrowException(size_t returnValue, string message)
 		{
-			if (message == "Destination buffer is too small")
+			if (-unchecked((int)returnValue) == ZSTD_error_dstSize_tooSmall)
 				throw new InsufficientMemoryException(message);
 			throw new ZstdException(message);
 		}
+
+		// ReSharper disable once InconsistentNaming
+		private const int ZSTD_error_dstSize_tooSmall = 9;
 
 		public static IntPtr EnsureZstdSuccess(this IntPtr returnValue)
 		{
