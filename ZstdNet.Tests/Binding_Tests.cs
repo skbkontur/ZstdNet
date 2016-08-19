@@ -40,7 +40,7 @@ namespace ZstdNet.Tests
 		}
 
 		[Test]
-		public void Decompress_withoutDictionary_worksCorrectly_onDataWithDictionary()
+		public void DecompressWithDictionary_worksCorrectly_onDataCompressedWithoutIt()
 		{
 			var data = GenerateSample();
 			byte[] compressed;
@@ -88,6 +88,18 @@ namespace ZstdNet.Tests
 
 			using(var decompressor = new Decompressor())
 				Assert.Throws<ZstdException>(() => decompressor.Unwrap(data));
+		}
+
+		[Test]
+		public void Decompress_throwsArgumentOutOfRangeException_onTooBigData()
+		{
+			var data = GenerateSample();
+			byte[] compressed;
+			using(var compressor = new Compressor())
+				compressed = compressor.Wrap(data);
+
+			using(var decompressor = new Decompressor())
+				Assert.Throws<ArgumentOutOfRangeException>(() => decompressor.Unwrap(compressed, 20));
 		}
 
 		[Test]

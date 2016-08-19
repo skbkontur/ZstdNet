@@ -30,15 +30,21 @@ namespace ZstdNet
 
 		private bool disposed = false;
 
-		public byte[] Unwrap(byte[] data)
+		public byte[] Unwrap(byte[] data, size_t maxDecompressedSize = size_t.MaxValue)
 		{
-			return Unwrap(new ArraySegment<byte>(data));
+			return Unwrap(new ArraySegment<byte>(data), maxDecompressedSize);
 		}
 
-		public byte[] Unwrap(ArraySegment<byte> data)
+		public byte[] Unwrap(ArraySegment<byte> data, size_t maxDecompressedSize = size_t.MaxValue)
 		{
-			// NOTE: Unwrap now can be used only on trusted data,
-			// NOTE: because we can't trust ZSTD_getDecompressedSize(), and it can be very big (https://github.com/Cyan4973/zstd/blob/master/lib/zstd.h#L83).
+			/* NOTES about ZSTD_getDecompressedSize():
+
+			- Decompressed size can be very large (64-bits value),
+			potentially larger than what local system can handle as a single memory segment.
+			In which case, it's necessary to use streaming mode to decompress data.
+
+			- Decompressed size could be wrong or intentionally modified!
+			Always ensure result fits within application's authorized limits! */
 
 			if(data.Count == 0)
 				return new byte[0];
@@ -50,6 +56,8 @@ namespace ZstdNet
 				dstCapacity = ExternMethods.ZSTD_getDecompressedSize(src, (size_t) data.Count);
 				if(dstCapacity == 0)
 					throw new ZstdException("Can't decompress data with unspecified decompressed size (streaming mode is not implemented)");
+				if(dstCapacity > maxDecompressedSize)
+					throw new ArgumentOutOfRangeException(string.Format("Decompressed size is too big ({0} bytes > authorized {1} bytes)", dstCapacity, maxDecompressedSize));
 				dst = new byte[dstCapacity];
 
 				if (ddict == IntPtr.Zero)
