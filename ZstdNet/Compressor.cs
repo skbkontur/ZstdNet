@@ -51,21 +51,12 @@ namespace ZstdNet
 			var dstCapacity = ExternMethods.ZSTD_compressBound((size_t)src.Count);
 			var dst = new byte[dstCapacity];
 
-			size_t dstSize;
-			using (var srcPtr = new ArraySegmentPtr(src))
-			using (var dstPtr = new ArraySegmentPtr(dst))
-			{
-				if (cdict == IntPtr.Zero)
-					dstSize = ExternMethods.ZSTD_compressCCtx(cctx, dstPtr, dstCapacity, srcPtr, (size_t)src.Count, compressionLevel);
-				else
-					dstSize = ExternMethods.ZSTD_compress_usingCDict(cctx, dstPtr, dstCapacity, srcPtr, (size_t)src.Count, cdict);
-			}
-			dstSize.EnsureZstdSuccess();
+			var dstSize = Wrap(src, dst, 0);
 
-			if(dstCapacity == dstSize)
+			if((int)dstCapacity == dstSize)
 				return dst;
 			var result = new byte[dstSize];
-			Array.Copy(dst, result, (int) dstSize);
+			Array.Copy(dst, result, dstSize);
 			return result;
 		}
 
@@ -82,15 +73,15 @@ namespace ZstdNet
 			if (src.Count == 0)
 				return 0;
 
-			var dstCapacity = (size_t)(dst.Length - offset);
+			var dstCapacity = dst.Length - offset;
 			size_t dstSize;
 			using(var srcPtr = new ArraySegmentPtr(src))
-			using(var dstPtr = new ArraySegmentPtr(dst))
+			using(var dstPtr = new ArraySegmentPtr(new ArraySegment<byte>(dst, offset, dstCapacity)))
 			{
 				if(cdict == IntPtr.Zero)
-					dstSize = ExternMethods.ZSTD_compressCCtx(cctx, dstPtr, dstCapacity, srcPtr, (size_t)src.Count, compressionLevel);
+					dstSize = ExternMethods.ZSTD_compressCCtx(cctx, dstPtr, (size_t)dstCapacity, srcPtr, (size_t)src.Count, compressionLevel);
 				else
-					dstSize = ExternMethods.ZSTD_compress_usingCDict(cctx, dstPtr, dstCapacity, srcPtr, (size_t)src.Count, cdict);
+					dstSize = ExternMethods.ZSTD_compress_usingCDict(cctx, dstPtr, (size_t)dstCapacity, srcPtr, (size_t)src.Count, cdict);
 			}
 			dstSize.EnsureZstdSuccess();
 			return (int)dstSize;
