@@ -9,26 +9,11 @@ namespace ZstdNet.Tests
 	public class Binding_Tests
 	{
 		[Test]
-		public void CompressAndDecompress_workCorrectly_withoutDictionary()
+		public void CompressAndDecompress_workCorrectly([Values(false, true)] bool useDictionary)
 		{
 			var data = GenerateSample();
 
-			byte[] compressed;
-			using(var compressor = new Compressor())
-				compressed = compressor.Wrap(data);
-			byte[] decompressed;
-			using(var decompressor = new Decompressor())
-				decompressed = decompressor.Unwrap(compressed);
-
-			CollectionAssert.AreEqual(data, decompressed);
-		}
-
-		[Test]
-		public void CompressAndDecompress_workCorrectly_withDictionary()
-		{
-			var data = GenerateSample();
-
-			var dict = BuildDictionary();
+			var dict = useDictionary ? BuildDictionary() : null;
 			byte[] compressed;
 			using(var compressor = new Compressor(dict))
 				compressed = compressor.Wrap(data);
@@ -82,95 +67,102 @@ namespace ZstdNet.Tests
 		}
 
 		[Test]
-		public void Decompress_throwsZstdException_onInvalidData()
+		public void Decompress_throwsZstdException_onInvalidData([Values(false, true)] bool useDictionary)
 		{
 			var data = GenerateSample(); // This isn't data in compressed format
+			var dict = useDictionary ? BuildDictionary() : null;
 
-			using(var decompressor = new Decompressor())
+			using(var decompressor = new Decompressor(dict))
 				Assert.Throws<ZstdException>(() => decompressor.Unwrap(data));
 		}
 
 		[Test]
-		public void Decompress_throwsArgumentOutOfRangeException_onTooBigData()
+		public void Decompress_throwsArgumentOutOfRangeException_onTooBigData([Values(false, true)] bool useDictionary)
 		{
 			var data = GenerateSample();
+			var dict = useDictionary ? BuildDictionary() : null;
 			byte[] compressed;
-			using(var compressor = new Compressor())
+			using(var compressor = new Compressor(dict))
 				compressed = compressor.Wrap(data);
 
-			using(var decompressor = new Decompressor())
+			using(var decompressor = new Decompressor(dict))
 				Assert.Throws<ArgumentOutOfRangeException>(() => decompressor.Unwrap(compressed, 20));
 		}
 
 		[Test]
-		public void Compress_worksWithArraySegment()
+		public void Compress_worksWithArraySegment([Values(false, true)] bool useDictionary)
 		{
 			var data = GenerateSample();
 			var segment = new ArraySegment<byte>(data, 2, data.Length - 5);
+			var dict = useDictionary ? BuildDictionary() : null;
 
 			byte[] compressed;
-			using(var compressor = new Compressor())
+			using(var compressor = new Compressor(dict))
 				compressed = compressor.Wrap(segment);
 
 			byte[] decompressed;
-			using(var decompressor = new Decompressor())
+			using(var decompressor = new Decompressor(dict))
 				decompressed = decompressor.Unwrap(compressed);
 			CollectionAssert.AreEqual(segment, decompressed);
 		}
 
 		[Test]
-		public void Decompress_worksWithArraySegment()
+		public void Decompress_worksWithArraySegment([Values(false, true)] bool useDictionary)
 		{
 			var data = GenerateSample();
+			var dict = useDictionary ? BuildDictionary() : null;
 			byte[] compressed;
-			using(var compressor = new Compressor())
+			using(var compressor = new Compressor(dict))
 				compressed = compressor.Wrap(data);
 			compressed = new byte[] {1, 2}.Concat(compressed).Concat(new byte[] {4, 5, 6})
 				.ToArray();
 			var segment = new ArraySegment<byte>(compressed, 2, compressed.Length - 5);
 
 			byte[] decompressed;
-			using(var decompressor = new Decompressor())
+			using(var decompressor = new Decompressor(dict))
 				decompressed = decompressor.Unwrap(segment);
 
 			CollectionAssert.AreEqual(data, decompressed);
 		}
 
 		[Test]
-		public void CompressAndDecompress_workCorrectly_onEmptyBuffer()
+		public void CompressAndDecompress_workCorrectly_onEmptyBuffer([Values(false, true)] bool useDictionary)
 		{
 			var data = new byte[0];
+			var dict = useDictionary ? BuildDictionary() : null;
 
 			byte[] compressed;
-			using(var compressor = new Compressor())
+			using(var compressor = new Compressor(dict))
 				compressed = compressor.Wrap(data);
 			byte[] decompressed;
-			using(var decompressor = new Decompressor())
+			using(var decompressor = new Decompressor(dict))
 				decompressed = decompressor.Unwrap(compressed);
 
 			CollectionAssert.AreEqual(data, decompressed);
 		}
 
 		[Test]
-		public void CompressAndDecompress_workCorrectly_onOneByteBuffer()
+		public void CompressAndDecompress_workCorrectly_onOneByteBuffer([Values(false, true)] bool useDictionary)
 		{
 			var data = new byte[] { 42 };
+			var dict = useDictionary ? BuildDictionary() : null;
 
 			byte[] compressed;
-			using(var compressor = new Compressor())
+			using(var compressor = new Compressor(dict))
 				compressed = compressor.Wrap(data);
 			byte[] decompressed;
-			using(var decompressor = new Decompressor())
+			using(var decompressor = new Decompressor(dict))
 				decompressed = decompressor.Unwrap(compressed);
 
 			CollectionAssert.AreEqual(data, decompressed);
 		}
 
 		[Test]
-		public void CompressAndDecompress_workCorrectly_onArraysOfDifferentSizes()
+		public void CompressAndDecompress_workCorrectly_onArraysOfDifferentSizes([Values(false, true)] bool useDictionary)
 		{
-			using (var compressor = new Compressor())
-			using (var decompressor = new Decompressor())
+			var dict = useDictionary ? BuildDictionary() : null;
+			using (var compressor = new Compressor(dict))
+			using (var decompressor = new Decompressor(dict))
 			{
 				for (var i = 2; i < 100000; i += 3000)
 				{
@@ -184,14 +176,15 @@ namespace ZstdNet.Tests
 		}
 
 		[Test]
-		public void CompressAndDecompress_workCorrectly_ifDifferentInstancesRunInDifferentThreads()
+		public void CompressAndDecompress_workCorrectly_ifDifferentInstancesRunInDifferentThreads([Values(false, true)] bool useDictionary)
 		{
+			var dict = useDictionary ? BuildDictionary() : null;
 			Enumerable.Range(0, 100)
 				.AsParallel().WithDegreeOfParallelism(50)
 				.ForAll(_ =>
 				{
-					using (var compressor = new Compressor())
-					using (var decompressor = new Decompressor())
+					using (var compressor = new Compressor(dict))
+					using (var decompressor = new Decompressor(dict))
 					{
 						for (var i = 2; i < 100000; i += 30000)
 						{
