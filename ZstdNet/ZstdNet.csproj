@@ -61,12 +61,12 @@
     <Compile Include="ThrowHelper.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="zstdlib_x64.dll">
+    <None Include="zstdlib_x64.dll" Condition="'$(Platform)' == 'x64'">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="zstdlib_x86.dll">
+    </None>
+    <None Include="zstdlib_x86.dll" Condition="'$(Platform)' == 'x86'">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
