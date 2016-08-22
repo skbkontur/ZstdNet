@@ -52,26 +52,26 @@ namespace ZstdNet
 			if(src.Count == 0)
 				return new byte[0];
 
-			ulong dstCapacity;
+			ulong expectedDstSize;
 			using(var srcPtr = new ArraySegmentPtr(src))
-				dstCapacity = ExternMethods.ZSTD_getDecompressedSize(srcPtr, (size_t)src.Count);
-			if(dstCapacity == 0)
+				expectedDstSize = ExternMethods.ZSTD_getDecompressedSize(srcPtr, (size_t)src.Count);
+			if(expectedDstSize == 0)
 				throw new ZstdException("Can't create buffer for data with unspecified decompressed size (provide your own buffer to Unwrap instead)");
-			if(dstCapacity > maxDecompressedSize)
-				throw new ArgumentOutOfRangeException(string.Format("Decompressed size is too big ({0} bytes > authorized {1} bytes)", dstCapacity, maxDecompressedSize));
-			var dst = new byte[dstCapacity];
+			if(expectedDstSize > maxDecompressedSize)
+				throw new ArgumentOutOfRangeException(string.Format("Decompressed size is too big ({0} bytes > authorized {1} bytes)", expectedDstSize, maxDecompressedSize));
+			var dst = new byte[expectedDstSize];
 
 			int dstSize;
 			try
 			{
-				dstSize = Unwrap(src, dst, 0);
+				dstSize = Unwrap(src, dst, 0, false);
 			}
 			catch (InsufficientMemoryException)
 			{
 				throw new ZstdException("Invalid decompressed size");
 			}
 
-			if ((int)dstCapacity != dstSize)
+			if ((int)expectedDstSize != dstSize)
 				throw new ZstdException("Invalid decompressed size specified in the data");
 			return dst;
 		}
@@ -81,7 +81,7 @@ namespace ZstdNet
 			return Unwrap(new ArraySegment<byte>(src), dst, offset);
 		}
 
-		public int Unwrap(ArraySegment<byte> src, byte[] dst, int offset)
+		public int Unwrap(ArraySegment<byte> src, byte[] dst, int offset, bool bufferSizePrecheck = true)
 		{
 			if (offset < 0 || offset >= dst.Length)
 				throw new ArgumentOutOfRangeException(nameof(offset));
@@ -90,17 +90,27 @@ namespace ZstdNet
 				return 0;
 
 			var dstCapacity = dst.Length - offset;
-			size_t dstSize;
-			using(var srcPtr = new ArraySegmentPtr(src))
-			using(var dstPtr = new ArraySegmentPtr(new ArraySegment<byte>(dst, offset, dstCapacity)))
+			using (var srcPtr = new ArraySegmentPtr(src))
 			{
-				if(ddict == IntPtr.Zero)
-					dstSize = ExternMethods.ZSTD_decompressDCtx(dctx, dstPtr, (size_t)dstCapacity, srcPtr, (size_t)src.Count);
-				else
-					dstSize = ExternMethods.ZSTD_decompress_usingDDict(dctx, dstPtr, (size_t)dstCapacity, srcPtr, (size_t)src.Count, ddict);
+				if (bufferSizePrecheck)
+				{
+					var expectedDstSize = ExternMethods.ZSTD_getDecompressedSize(srcPtr, (size_t) src.Count);
+					if ((int)expectedDstSize > dstCapacity)
+						throw new InsufficientMemoryException("Buffer size is less than specified decompressed data size");
+				}
+
+				size_t dstSize;
+				using (var dstPtr = new ArraySegmentPtr(new ArraySegment<byte>(dst, offset, dstCapacity)))
+				{
+					if (ddict == IntPtr.Zero)
+						dstSize = ExternMethods.ZSTD_decompressDCtx(dctx, dstPtr, (size_t) dstCapacity, srcPtr, (size_t) src.Count);
+					else
+						dstSize = ExternMethods.ZSTD_decompress_usingDDict(dctx, dstPtr, (size_t) dstCapacity, srcPtr, (size_t) src.Count,
+							ddict);
+				}
+				dstSize.EnsureZstdSuccess();
+				return (int) dstSize;
 			}
-			dstSize.EnsureZstdSuccess();
-			return (int)dstSize;
 		}
 
 		private readonly IntPtr dctx, ddict;
