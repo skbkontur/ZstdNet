@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("ZstdNet")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Zstd wrapper for .NET")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("SKB Kontur")]
 [assembly: AssemblyProduct("ZstdNet")]
