@@ -11,6 +11,8 @@ namespace ZstdNet
 	{
 		public Decompressor(byte[] dict = null)
 		{
+			Dictionary = dict;
+
 			dctx = ExternMethods.ZSTD_createDCtx().EnsureZstdSuccess();
 			if (dict != null)
 				ddict = ExternMethods.ZSTD_createDDict(dict, (size_t)dict.Length).EnsureZstdSuccess();
@@ -112,6 +114,8 @@ namespace ZstdNet
 				return (int) dstSize;
 			}
 		}
+
+		public readonly byte[] Dictionary;
 
 		private readonly IntPtr dctx, ddict;
 	}

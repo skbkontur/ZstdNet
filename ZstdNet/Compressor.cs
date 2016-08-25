@@ -11,7 +11,8 @@ namespace ZstdNet
 	{
 		public Compressor(byte[] dict = null, int compressionLevel = DefaultCompressionLevel)
 		{
-			this.compressionLevel = compressionLevel;
+			CompressionLevel = compressionLevel;
+			Dictionary = dict;
 
 			cctx = ExternMethods.ZSTD_createCCtx().EnsureZstdSuccess();
 			if (dict != null)
@@ -92,7 +93,7 @@ namespace ZstdNet
 			using(var dstPtr = new ArraySegmentPtr(new ArraySegment<byte>(dst, offset, dstCapacity)))
 			{
 				if(cdict == IntPtr.Zero)
-					dstSize = ExternMethods.ZSTD_compressCCtx(cctx, dstPtr, (size_t)dstCapacity, srcPtr, (size_t)src.Count, compressionLevel);
+					dstSize = ExternMethods.ZSTD_compressCCtx(cctx, dstPtr, (size_t)dstCapacity, srcPtr, (size_t)src.Count, CompressionLevel);
 				else
 					dstSize = ExternMethods.ZSTD_compress_usingCDict(cctx, dstPtr, (size_t)dstCapacity, srcPtr, (size_t)src.Count, cdict);
 			}
@@ -100,7 +101,9 @@ namespace ZstdNet
 			return (int)dstSize;
 		}
 
+		public readonly int CompressionLevel;
+		public readonly byte[] Dictionary;
+
 		private readonly IntPtr cctx, cdict;
-		private readonly int compressionLevel;
 	}
 }
