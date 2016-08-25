@@ -9,13 +9,13 @@ namespace ZstdNet.Tests
 	public class Binding_Tests
 	{
 		[Test]
-		public void CompressAndDecompress_workCorrectly([Values(false, true)] bool useDictionary)
+		public void CompressAndDecompress_workCorrectly([Values(false, true)] bool useDictionary, [Values(false, true)] bool bestCompression)
 		{
 			var data = GenerateSample();
 
 			var dict = useDictionary ? BuildDictionary() : null;
 			byte[] compressed;
-			using(var compressor = new Compressor(dict))
+			using(var compressor = new Compressor(dict, bestCompression ? Compressor.MaxCompressionLevel : Compressor.DefaultCompressionLevel))
 				compressed = compressor.Wrap(data);
 			byte[] decompressed;
 			using(var decompressor = new Decompressor(dict))
@@ -38,6 +38,33 @@ namespace ZstdNet.Tests
 				decompressed = decompressor.Unwrap(compressed);
 
 			CollectionAssert.AreEqual(data, decompressed);
+		}
+
+		[Test]
+		public void DecompressWithoutDictionary_throwsZstdException_onDataCompressedWithIt()
+		{
+			var data = GenerateSample();
+			var dict = BuildDictionary();
+			byte[] compressed;
+			using(var compressor = new Compressor(dict))
+				compressed = compressor.Wrap(data);
+
+			using(var decompressor = new Decompressor())
+				Assert.Throws<ZstdException>(() => decompressor.Unwrap(compressed));
+		}
+
+		[Test]
+		public void DecompressWithAnotherDictionary_throwsZstdException()
+		{
+			var data = GenerateSample();
+			var oldDict = BuildDictionary();
+			byte[] compressed;
+			using(var compressor = new Compressor(oldDict))
+				compressed = compressor.Wrap(data);
+			var newDict = Encoding.ASCII.GetBytes("zstd supports raw-content dictionaries");
+
+			using(var decompressor = new Decompressor(newDict))
+				Assert.Throws<ZstdException>(() => decompressor.Unwrap(compressed));
 		}
 
 		[Test]
