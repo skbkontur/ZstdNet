@@ -18,6 +18,11 @@ namespace ZstdNet
 				cdict = ExternMethods.ZSTD_createCDict(dict, (size_t)dict.Length, compressionLevel).EnsureZstdSuccess();
 		}
 
+		public static int MaxCompressionLevel
+		{
+			get { return ExternMethods.ZSTD_maxCLevel(); }
+		}
+
 		public const int DefaultCompressionLevel = 3; // Used by zstd utility by default
 
 		~Compressor()
