@@ -54,9 +54,7 @@ namespace ZstdNet
 			if(src.Count == 0)
 				return new byte[0];
 
-			ulong expectedDstSize;
-			using(var srcPtr = new ArraySegmentPtr(src))
-				expectedDstSize = ExternMethods.ZSTD_getDecompressedSize(srcPtr, (size_t)src.Count);
+			var expectedDstSize = GetDecompressedSize(src);
 			if(expectedDstSize == 0)
 				throw new ZstdException("Can't create buffer for data with unspecified decompressed size (provide your own buffer to Unwrap instead)");
 			if(expectedDstSize > maxDecompressedSize)
@@ -76,6 +74,17 @@ namespace ZstdNet
 			if ((int)expectedDstSize != dstSize)
 				throw new ZstdException("Invalid decompressed size specified in the data");
 			return dst;
+		}
+
+		public static ulong GetDecompressedSize(byte[] src)
+		{
+			return GetDecompressedSize(new ArraySegment<byte>(src));
+		}
+
+		public static ulong GetDecompressedSize(ArraySegment<byte> src)
+		{
+			using(var srcPtr = new ArraySegmentPtr(src))
+				return ExternMethods.ZSTD_getDecompressedSize(srcPtr, (size_t)src.Count);
 		}
 
 		public int Unwrap(byte[] src, byte[] dst, int offset)

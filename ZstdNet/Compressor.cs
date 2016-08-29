@@ -62,16 +62,21 @@ namespace ZstdNet
 			if (src.Count == 0)
 				return new byte[0];
 
-			var dstCapacity = ExternMethods.ZSTD_compressBound((size_t)src.Count);
+			var dstCapacity = GetCompressBound(src.Count);
 			var dst = new byte[dstCapacity];
 
 			var dstSize = Wrap(src, dst, 0);
 
-			if((int)dstCapacity == dstSize)
+			if(dstCapacity == dstSize)
 				return dst;
 			var result = new byte[dstSize];
 			Array.Copy(dst, result, dstSize);
 			return result;
+		}
+
+		public static int GetCompressBound(int size)
+		{
+			return (int)ExternMethods.ZSTD_compressBound((size_t)size);
 		}
 
 		public int Wrap(byte[] src, byte[] dst, int offset)
