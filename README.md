@@ -53,4 +53,4 @@ Wrapper Authors
 
 Copyright (c) 2016 [SKB Kontur](https://kontur.ru/eng/about)
 
-*ZstdNet* is licensed under [GNU GPL, version 3](COPYING).
+*ZstdNet* is distributed under [BSD 3-Clause License](LICENSE).
