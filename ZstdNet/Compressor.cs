@@ -9,22 +9,16 @@ namespace ZstdNet
 {
 	public class Compressor : IDisposable
 	{
-		public Compressor(byte[] dict = null, int compressionLevel = DefaultCompressionLevel)
+		public Compressor()
+			: this(new CompressionOptions(CompressionOptions.DefaultCompressionLevel))
+		{ }
+
+		public Compressor(CompressionOptions options)
 		{
-			CompressionLevel = compressionLevel;
-			Dictionary = dict;
+			Options = options;
 
 			cctx = ExternMethods.ZSTD_createCCtx().EnsureZstdSuccess();
-			if (dict != null)
-				cdict = ExternMethods.ZSTD_createCDict(dict, (size_t)dict.Length, compressionLevel).EnsureZstdSuccess();
 		}
-
-		public static int MaxCompressionLevel
-		{
-			get { return ExternMethods.ZSTD_maxCLevel(); }
-		}
-
-		public const int DefaultCompressionLevel = 3; // Used by zstd utility by default
 
 		~Compressor()
 		{
@@ -42,8 +36,6 @@ namespace ZstdNet
 				return;
 			disposed = true;
 
-			if (cdict != IntPtr.Zero)
-				ExternMethods.ZSTD_freeCDict(cdict);
 			ExternMethods.ZSTD_freeCCtx(cctx);
 
 			if (disposing)
@@ -97,18 +89,17 @@ namespace ZstdNet
 			using(var srcPtr = new ArraySegmentPtr(src))
 			using(var dstPtr = new ArraySegmentPtr(new ArraySegment<byte>(dst, offset, dstCapacity)))
 			{
-				if(cdict == IntPtr.Zero)
-					dstSize = ExternMethods.ZSTD_compressCCtx(cctx, dstPtr, (size_t)dstCapacity, srcPtr, (size_t)src.Count, CompressionLevel);
+				if(Options.Cdict == IntPtr.Zero)
+					dstSize = ExternMethods.ZSTD_compressCCtx(cctx, dstPtr, (size_t)dstCapacity, srcPtr, (size_t)src.Count, Options.CompressionLevel);
 				else
-					dstSize = ExternMethods.ZSTD_compress_usingCDict(cctx, dstPtr, (size_t)dstCapacity, srcPtr, (size_t)src.Count, cdict);
+					dstSize = ExternMethods.ZSTD_compress_usingCDict(cctx, dstPtr, (size_t)dstCapacity, srcPtr, (size_t)src.Count, Options.Cdict);
 			}
 			dstSize.EnsureZstdSuccess();
 			return (int)dstSize;
 		}
 
-		public readonly int CompressionLevel;
-		public readonly byte[] Dictionary;
+		public readonly CompressionOptions Options;
 
-		private readonly IntPtr cctx, cdict;
+		private readonly IntPtr cctx;
 	}
 }

@@ -9,13 +9,15 @@ namespace ZstdNet
 {
 	public class Decompressor : IDisposable
 	{
-		public Decompressor(byte[] dict = null)
+		public Decompressor()
+			: this(new DecompressionOptions(null))
+		{ }
+
+		public Decompressor(DecompressionOptions options)
 		{
-			Dictionary = dict;
+			Options = options;
 
 			dctx = ExternMethods.ZSTD_createDCtx().EnsureZstdSuccess();
-			if (dict != null)
-				ddict = ExternMethods.ZSTD_createDDict(dict, (size_t)dict.Length).EnsureZstdSuccess();
 		}
 
 		~Decompressor()
@@ -34,8 +36,6 @@ namespace ZstdNet
 				return;
 			disposed = true;
 
-			if (ddict != IntPtr.Zero)
-				ExternMethods.ZSTD_freeDDict(ddict);
 			ExternMethods.ZSTD_freeDCtx(dctx);
 
 			if(disposing)
@@ -113,19 +113,19 @@ namespace ZstdNet
 				size_t dstSize;
 				using (var dstPtr = new ArraySegmentPtr(new ArraySegment<byte>(dst, offset, dstCapacity)))
 				{
-					if (ddict == IntPtr.Zero)
+					if (Options.Ddict == IntPtr.Zero)
 						dstSize = ExternMethods.ZSTD_decompressDCtx(dctx, dstPtr, (size_t) dstCapacity, srcPtr, (size_t) src.Count);
 					else
 						dstSize = ExternMethods.ZSTD_decompress_usingDDict(dctx, dstPtr, (size_t) dstCapacity, srcPtr, (size_t) src.Count,
-							ddict);
+							Options.Ddict);
 				}
 				dstSize.EnsureZstdSuccess();
 				return (int) dstSize;
 			}
 		}
 
-		public readonly byte[] Dictionary;
+		public readonly DecompressionOptions Options;
 
-		private readonly IntPtr dctx, ddict;
+		private readonly IntPtr dctx;
 	}
 }

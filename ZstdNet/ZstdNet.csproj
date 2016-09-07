@@ -53,7 +53,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ArraySegmentPtr.cs" />
+    <Compile Include="CompressionOptions.cs" />
     <Compile Include="Compressor.cs" />
+    <Compile Include="DecompressionOptions.cs" />
     <Compile Include="Decompressor.cs" />
     <Compile Include="DictBuilder.cs" />
     <Compile Include="ExternMethods.cs" />
