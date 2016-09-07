@@ -16,6 +16,8 @@ namespace ZstdNet
 
 			if (dict != null)
 				Cdict = ExternMethods.ZSTD_createCDict(dict, (size_t)dict.Length, compressionLevel).EnsureZstdSuccess();
+			else
+				GC.SuppressFinalize(this); // No unmanaged resources
 		}
 
 		public CompressionOptions(int compressionLevel)

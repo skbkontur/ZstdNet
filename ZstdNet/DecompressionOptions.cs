@@ -15,6 +15,8 @@ namespace ZstdNet
 
 			if (dict != null)
 				Ddict = ExternMethods.ZSTD_createDDict(dict, (size_t)dict.Length).EnsureZstdSuccess();
+			else
+				GC.SuppressFinalize(this); // No unmanaged resources
 		}
 
 		~DecompressionOptions()
