@@ -26,13 +26,14 @@ namespace ZstdNet
 
 		private static void ThrowException(size_t returnValue, string message)
 		{
-			if (-unchecked((int)returnValue) == ZSTD_error_dstSize_tooSmall)
+			if(unchecked(0 - returnValue) == ZSTD_error_dstSize_tooSmall)
 				throw new InsufficientMemoryException(message);
 			throw new ZstdException(message);
 		}
 
 		// ReSharper disable once InconsistentNaming
-		private const int ZSTD_error_dstSize_tooSmall = 9;
+		// NOTE that this const may change on zstdlib update
+		private const size_t ZSTD_error_dstSize_tooSmall = 11;
 
 		public static IntPtr EnsureZstdSuccess(this IntPtr returnValue)
 		{
