@@ -63,10 +63,10 @@
     <Compile Include="ThrowHelper.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="zstdlib_x64.dll" Condition="'$(Platform)' == 'x64'">
+    <None Include="..\Native\zstdlib_x64.dll" Condition="'$(Platform)' == 'x64'">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="zstdlib_x86.dll" Condition="'$(Platform)' == 'x86'">
+    <None Include="..\Native\zstdlib_x86.dll" Condition="'$(Platform)' == 'x86'">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

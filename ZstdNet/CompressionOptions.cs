@@ -14,7 +14,7 @@ namespace ZstdNet
 		{
 			Dictionary = dict;
 
-			if (dict != null)
+			if(dict != null)
 				Cdict = ExternMethods.ZSTD_createCDict(dict, (size_t)dict.Length, compressionLevel).EnsureZstdSuccess();
 			else
 				GC.SuppressFinalize(this); // No unmanaged resources
@@ -33,19 +33,18 @@ namespace ZstdNet
 		public void Dispose()
 		{
 			Dispose(true);
+			GC.SuppressFinalize(this);
 		}
 
 		private void Dispose(bool disposing)
 		{
-			if (disposed)
+			if(disposed)
 				return;
-			disposed = true;
 
-			if (Cdict != IntPtr.Zero)
+			if(Cdict != IntPtr.Zero)
 				ExternMethods.ZSTD_freeCDict(Cdict);
 
-			if (disposing)
-				GC.SuppressFinalize(this);
+			disposed = true;
 		}
 
 		private bool disposed = false;

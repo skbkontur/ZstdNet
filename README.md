@@ -17,7 +17,7 @@ Zstd
 provides both good compression ratio _and_ speed for your standard compression
 needs. "Standard" translates into everyday situations which neither look for
 highest possible ratio (which LZMA and ZPAQ cover) nor extreme speeds (which
-LZ4 covers).
+LZ4 covers). Zstandard is licensed under [BSD 3-Clause License](Native/LICENSE).
 
 **Zstd** is developed by Yann Collet and the source is available at:
 https://github.com/Cyan4973/zstd

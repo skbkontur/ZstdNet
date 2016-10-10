@@ -28,18 +28,17 @@ namespace ZstdNet
 		public void Dispose()
 		{
 			Dispose(true);
+			GC.SuppressFinalize(this);
 		}
 
 		private void Dispose(bool disposing)
 		{
 			if(disposed)
 				return;
-			disposed = true;
 
 			ExternMethods.ZSTD_freeDCtx(dctx);
 
-			if(disposing)
-				GC.SuppressFinalize(this);
+			disposed = true;
 		}
 
 		private bool disposed = false;
