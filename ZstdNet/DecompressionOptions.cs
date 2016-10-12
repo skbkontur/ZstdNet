@@ -7,7 +7,7 @@ using size_t = System.UInt32;
 
 namespace ZstdNet
 {
-	public class DecompressionOptions
+	public class DecompressionOptions : IDisposable
 	{
 		public DecompressionOptions(byte[] dict)
 		{

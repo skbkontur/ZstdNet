@@ -15,11 +15,15 @@ namespace ZstdNet.Tests
 
 			var dict = useDictionary ? BuildDictionary() : null;
 			var compressionLevel = bestCompression ? CompressionOptions.MaxCompressionLevel : CompressionOptions.DefaultCompressionLevel;
+
 			byte[] compressed;
-			using(var compressor = new Compressor(new CompressionOptions(dict, compressionLevel)))
+			using(var options = new CompressionOptions(dict, compressionLevel))
+			using(var compressor = new Compressor(options))
 				compressed = compressor.Wrap(data);
+
 			byte[] decompressed;
-			using(var decompressor = new Decompressor(new DecompressionOptions(dict)))
+			using(var options = new DecompressionOptions(dict))
+			using(var decompressor = new Decompressor(options))
 				decompressed = decompressor.Unwrap(compressed);
 
 			CollectionAssert.AreEqual(data, decompressed);
@@ -34,8 +38,10 @@ namespace ZstdNet.Tests
 				compressed = compressor.Wrap(data);
 
 			var dict = BuildDictionary();
+
 			byte[] decompressed;
-			using(var decompressor = new Decompressor(new DecompressionOptions(dict)))
+			using(var options = new DecompressionOptions(dict))
+			using(var decompressor = new Decompressor(options))
 				decompressed = decompressor.Unwrap(compressed);
 
 			CollectionAssert.AreEqual(data, decompressed);
@@ -46,8 +52,10 @@ namespace ZstdNet.Tests
 		{
 			var data = GenerateSample();
 			var dict = BuildDictionary();
+
 			byte[] compressed;
-			using(var compressor = new Compressor(new CompressionOptions(dict)))
+			using(var options = new CompressionOptions(dict))
+			using(var compressor = new Compressor(options))
 				compressed = compressor.Wrap(data);
 
 			using(var decompressor = new Decompressor())
@@ -59,12 +67,16 @@ namespace ZstdNet.Tests
 		{
 			var data = GenerateSample();
 			var oldDict = BuildDictionary();
+
 			byte[] compressed;
-			using(var compressor = new Compressor(new CompressionOptions(oldDict)))
+			using(var options = new CompressionOptions(oldDict))
+			using(var compressor = new Compressor(options))
 				compressed = compressor.Wrap(data);
+
 			var newDict = Encoding.ASCII.GetBytes("zstd supports raw-content dictionaries");
 
-			using(var decompressor = new Decompressor(new DecompressionOptions(newDict)))
+			using(var options = new DecompressionOptions(newDict))
+			using(var decompressor = new Decompressor(options))
 				Assert.Throws<ZstdException>(() => decompressor.Unwrap(compressed));
 		}
 
@@ -88,7 +100,9 @@ namespace ZstdNet.Tests
 			byte[] compressedWithoutDict, compressedWithDict;
 			using (var compressor = new Compressor())
 				compressedWithoutDict = compressor.Wrap(data);
-			using (var compressor = new Compressor(new CompressionOptions(BuildDictionary())))
+
+			using(var options = new CompressionOptions(BuildDictionary()))
+			using(var compressor = new Compressor(options))
 				compressedWithDict = compressor.Wrap(data);
 
 			Assert.Greater(compressedWithoutDict.Length, compressedWithDict.Length);
@@ -100,7 +114,8 @@ namespace ZstdNet.Tests
 			var data = GenerateSample(); // This isn't data in compressed format
 			var dict = useDictionary ? BuildDictionary() : null;
 
-			using(var decompressor = new Decompressor(new DecompressionOptions(dict)))
+			using(var options = new DecompressionOptions(dict))
+			using(var decompressor = new Decompressor(options))
 				Assert.Throws<ZstdException>(() => decompressor.Unwrap(data));
 		}
 
@@ -109,12 +124,14 @@ namespace ZstdNet.Tests
 		{
 			var data = GenerateSample();
 			var dict = useDictionary ? BuildDictionary() : null;
+
 			byte[] compressed;
-			using(var compressor = new Compressor(new CompressionOptions(dict)))
+			using(var options = new CompressionOptions(dict))
+			using(var compressor = new Compressor(options))
 				compressed = compressor.Wrap(data);
 
 			var frameHeader = compressed[4]; // Ensure that we malform decompressed size in the right place
-			if (useDictionary)
+			if(useDictionary)
 			{
 				Assert.AreEqual(frameHeader, 0x63);
 				compressed[9]--;
@@ -124,8 +141,10 @@ namespace ZstdNet.Tests
 				Assert.AreEqual(frameHeader, 0x60);
 				compressed[5]--;
 			}
+
 			// Thus, ZSTD_getDecompressedSize will return size that is one byte lesser than actual
-			using(var decompressor = new Decompressor(new DecompressionOptions(dict)))
+			using(var options = new DecompressionOptions(dict))
+			using(var decompressor = new Decompressor(options))
 				Assert.Throws<ZstdException>(() => decompressor.Unwrap(compressed));
 		}
 
@@ -134,11 +153,14 @@ namespace ZstdNet.Tests
 		{
 			var data = GenerateSample();
 			var dict = useDictionary ? BuildDictionary() : null;
+
 			byte[] compressed;
-			using(var compressor = new Compressor(new CompressionOptions(dict)))
+			using(var options = new CompressionOptions(dict))
+			using(var compressor = new Compressor(options))
 				compressed = compressor.Wrap(data);
 
-			using(var decompressor = new Decompressor(new DecompressionOptions(dict)))
+			using(var options = new DecompressionOptions(dict))
+			using(var decompressor = new Decompressor(options))
 				Assert.Throws<ArgumentOutOfRangeException>(() => decompressor.Unwrap(compressed, 20));
 		}
 
@@ -150,12 +172,15 @@ namespace ZstdNet.Tests
 			var dict = useDictionary ? BuildDictionary() : null;
 
 			byte[] compressed;
-			using(var compressor = new Compressor(new CompressionOptions(dict)))
+			using(var options = new CompressionOptions(dict))
+			using(var compressor = new Compressor(options))
 				compressed = compressor.Wrap(segment);
 
 			byte[] decompressed;
-			using(var decompressor = new Decompressor(new DecompressionOptions(dict)))
+			using(var options = new DecompressionOptions(dict))
+			using(var decompressor = new Decompressor(options))
 				decompressed = decompressor.Unwrap(compressed);
+
 			CollectionAssert.AreEqual(segment, decompressed);
 		}
 
@@ -164,15 +189,18 @@ namespace ZstdNet.Tests
 		{
 			var data = GenerateSample();
 			var dict = useDictionary ? BuildDictionary() : null;
+
 			byte[] compressed;
-			using(var compressor = new Compressor(new CompressionOptions(dict)))
+			using(var options = new CompressionOptions(dict))
+			using(var compressor = new Compressor(options))
 				compressed = compressor.Wrap(data);
-			compressed = new byte[] {1, 2}.Concat(compressed).Concat(new byte[] {4, 5, 6})
-				.ToArray();
+
+			compressed = new byte[] {1, 2}.Concat(compressed).Concat(new byte[] {4, 5, 6}).ToArray();
 			var segment = new ArraySegment<byte>(compressed, 2, compressed.Length - 5);
 
 			byte[] decompressed;
-			using(var decompressor = new Decompressor(new DecompressionOptions(dict)))
+			using(var options = new DecompressionOptions(dict))
+			using(var decompressor = new Decompressor(options))
 				decompressed = decompressor.Unwrap(segment);
 
 			CollectionAssert.AreEqual(data, decompressed);
@@ -187,12 +215,15 @@ namespace ZstdNet.Tests
 			const int offset = 54;
 
 			int compressedSize;
-			using(var compressor = new Compressor(new CompressionOptions(dict)))
+			using(var options = new CompressionOptions(dict))
+			using(var compressor = new Compressor(options))
 				compressedSize = compressor.Wrap(data, compressed, offset);
 
 			byte[] decompressed;
-			using(var decompressor = new Decompressor(new DecompressionOptions(dict)))
+			using(var options = new DecompressionOptions(dict))
+			using(var decompressor = new Decompressor(options))
 				decompressed = decompressor.Unwrap(compressed.Skip(offset).Take(compressedSize).ToArray());
+
 			CollectionAssert.AreEqual(data, decompressed);
 		}
 
@@ -201,14 +232,18 @@ namespace ZstdNet.Tests
 		{
 			var data = GenerateSample();
 			var dict = useDictionary ? BuildDictionary() : null;
+
 			byte[] compressed;
-			using(var compressor = new Compressor(new CompressionOptions(dict)))
+			using(var options = new CompressionOptions(dict))
+			using(var compressor = new Compressor(options))
 				compressed = compressor.Wrap(data);
+
 			var decompressed = new byte[1000];
 			const int offset = 54;
 
 			int decompressedSize;
-			using(var decompressor = new Decompressor(new DecompressionOptions(dict)))
+			using(var options = new DecompressionOptions(dict))
+			using(var decompressor = new Decompressor(options))
 				decompressedSize = decompressor.Unwrap(compressed, decompressed, offset);
 
 			CollectionAssert.AreEqual(data, decompressed.Skip(offset).Take(decompressedSize));
@@ -222,7 +257,8 @@ namespace ZstdNet.Tests
 			var compressed = new byte[20];
 			const int offset = 4;
 
-			using (var compressor = new Compressor(new CompressionOptions(dict)))
+			using(var options = new CompressionOptions(dict))
+			using(var compressor = new Compressor(options))
 				Assert.Throws<InsufficientMemoryException>(() => compressor.Wrap(data, compressed, offset));
 		}
 
@@ -231,13 +267,17 @@ namespace ZstdNet.Tests
 		{
 			var data = GenerateSample();
 			var dict = useDictionary ? BuildDictionary() : null;
+
 			byte[] compressed;
-			using(var compressor = new Compressor(new CompressionOptions(dict)))
+			using(var options = new CompressionOptions(dict))
+			using(var compressor = new Compressor(options))
 				compressed = compressor.Wrap(data);
+
 			var decompressed = new byte[20];
 			const int offset = 4;
 
-			using (var decompressor = new Decompressor(new DecompressionOptions(dict)))
+			using(var options = new DecompressionOptions(dict))
+			using(var decompressor = new Decompressor(options))
 				Assert.Throws<InsufficientMemoryException>(() => decompressor.Unwrap(compressed, decompressed, offset));
 		}
 
@@ -248,10 +288,13 @@ namespace ZstdNet.Tests
 			var dict = useDictionary ? BuildDictionary() : null;
 
 			byte[] compressed;
-			using(var compressor = new Compressor(new CompressionOptions(dict)))
+			using(var options = new CompressionOptions(dict))
+			using(var compressor = new Compressor(options))
 				compressed = compressor.Wrap(data);
+
 			byte[] decompressed;
-			using(var decompressor = new Decompressor(new DecompressionOptions(dict)))
+			using(var options = new DecompressionOptions(dict))
+			using(var decompressor = new Decompressor(options))
 				decompressed = decompressor.Unwrap(compressed);
 
 			CollectionAssert.AreEqual(data, decompressed);
@@ -264,10 +307,13 @@ namespace ZstdNet.Tests
 			var dict = useDictionary ? BuildDictionary() : null;
 
 			byte[] compressed;
-			using(var compressor = new Compressor(new CompressionOptions(dict)))
+			using(var options = new CompressionOptions(dict))
+			using(var compressor = new Compressor(options))
 				compressed = compressor.Wrap(data);
+
 			byte[] decompressed;
-			using(var decompressor = new Decompressor(new DecompressionOptions(dict)))
+			using(var options = new DecompressionOptions(dict))
+			using(var decompressor = new Decompressor(options))
 				decompressed = decompressor.Unwrap(compressed);
 
 			CollectionAssert.AreEqual(data, decompressed);
@@ -277,10 +323,12 @@ namespace ZstdNet.Tests
 		public void CompressAndDecompress_workCorrectly_onArraysOfDifferentSizes([Values(false, true)] bool useDictionary)
 		{
 			var dict = useDictionary ? BuildDictionary() : null;
-			using (var compressor = new Compressor(new CompressionOptions(dict)))
-			using (var decompressor = new Decompressor(new DecompressionOptions(dict)))
+			using(var compressionOptions = new CompressionOptions(dict))
+			using(var decompressionOptions = new DecompressionOptions(dict))
+			using(var compressor = new Compressor(compressionOptions))
+			using(var decompressor = new Decompressor(decompressionOptions))
 			{
-				for (var i = 2; i < 100000; i += 3000)
+				for(var i = 2; i < 100000; i += 3000)
 				{
 					var data = GenerateBuffer(i);
 
@@ -295,25 +343,25 @@ namespace ZstdNet.Tests
 		public void CompressAndDecompress_workCorrectly_ifDifferentInstancesRunInDifferentThreads([Values(false, true)] bool useDictionary)
 		{
 			var dict = useDictionary ? BuildDictionary() : null;
-			var compressionOptions = new CompressionOptions(dict);
-			var decompressionOptions = new DecompressionOptions(dict);
-			Enumerable.Range(0, 100)
-				.AsParallel().WithDegreeOfParallelism(50)
-				.ForAll(_ =>
-				{
-					using (var compressor = new Compressor(compressionOptions))
-					using (var decompressor = new Decompressor(decompressionOptions))
+			using(var compressionOptions = new CompressionOptions(dict))
+			using(var decompressionOptions = new DecompressionOptions(dict))
+				Enumerable.Range(0, 100)
+					.AsParallel().WithDegreeOfParallelism(50)
+					.ForAll(_ =>
 					{
-						for (var i = 2; i < 100000; i += 30000)
+						using(var compressor = new Compressor(compressionOptions))
+						using(var decompressor = new Decompressor(decompressionOptions))
 						{
-							var data = GenerateBuffer(i);
+							for(var i = 2; i < 100000; i += 30000)
+							{
+								var data = GenerateBuffer(i);
 
-							var decompressed = decompressor.Unwrap(compressor.Wrap(data));
+								var decompressed = decompressor.Unwrap(compressor.Wrap(data));
 
-							CollectionAssert.AreEqual(data, decompressed);
+								CollectionAssert.AreEqual(data, decompressed);
+							}
 						}
-					}
-				});
+					});
 		}
 
 		private static byte[] BuildDictionary()

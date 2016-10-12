@@ -7,7 +7,7 @@ using size_t = System.UInt32;
 
 namespace ZstdNet
 {
-	public class CompressionOptions
+	public class CompressionOptions : IDisposable
 	{
 		public CompressionOptions(byte[] dict, int compressionLevel = DefaultCompressionLevel)
 			: this(compressionLevel)
