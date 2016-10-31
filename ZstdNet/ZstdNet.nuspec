@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>ZstdNet</id>
+    <version>1.0.0</version>
+	<title>ZstdNet</title>
+    <authors>SKB Kontur</authors>
+    <owners>SKB Kontur</owners>
+    <licenseUrl>https://github.com/skbkontur/ZstdNet/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/skbkontur/ZstdNet</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Zstd compression library wrapper for .NET</description>
+    <copyright>2016 SKB Kontur</copyright>
+    <tags>zstd zstandard compression</tags>
+  </metadata>
+  <files>
+    <file src="build\**" target="build" />
+  </files>
+</package>
