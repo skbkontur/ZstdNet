@@ -1,20 +1,29 @@
 ﻿using System;
+using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
-#if BUILD64
-using size_t = System.UInt64;
-#else
-using size_t = System.UInt32;
-#endif
+using size_t = System.UIntPtr;
 
 namespace ZstdNet
 {
 	internal static class ExternMethods
 	{
-#if BUILD64
-		private const string DllName = "zstdlib_x64.dll";
-#else
-		private const string DllName = "zstdlib_x86.dll";
-#endif
+		static ExternMethods()
+		{
+			var assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+			if (assemblyPath == null)
+				throw new InvalidOperationException("Failed to get assembly directory");
+			var platform = Environment.Is64BitProcess ? "x64" : "x86";
+
+			var ok = SetDllDirectory(Path.Combine(assemblyPath, platform));
+			if (!ok)
+				throw new InvalidOperationException("Failed to set DLL directory");
+		}
+
+		[DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+		private static extern bool SetDllDirectory(string path);
+
+		private const string DllName = "zstdlib.dll";
 
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
 		public static extern size_t ZDICT_trainFromBuffer(byte[] dictBuffer, size_t dictBufferCapacity, byte[] samplesBuffer, size_t[] samplesSizes, uint nbSamples);
