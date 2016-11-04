@@ -1,10 +1,6 @@
 ﻿using System;
 using System.Runtime.InteropServices;
-#if BUILD64
-using size_t = System.UInt64;
-#else
-using size_t = System.UInt32;
-#endif
+using size_t = System.UIntPtr;
 
 namespace ZstdNet
 {
@@ -26,14 +22,15 @@ namespace ZstdNet
 
 		private static void ThrowException(size_t returnValue, string message)
 		{
-			if(unchecked(0 - returnValue) == ZSTD_error_dstSize_tooSmall)
+			var code = unchecked(0 - (uint) (ulong) returnValue); // Negate returnValue (UintPtr)
+			if (code == ZSTD_error_dstSize_tooSmall)
 				throw new InsufficientMemoryException(message);
 			throw new ZstdException(message);
 		}
 
 		// ReSharper disable once InconsistentNaming
 		// NOTE that this const may change on zstdlib update
-		private const size_t ZSTD_error_dstSize_tooSmall = 11;
+		private const int ZSTD_error_dstSize_tooSmall = 11;
 
 		public static IntPtr EnsureZstdSuccess(this IntPtr returnValue)
 		{

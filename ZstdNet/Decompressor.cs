@@ -1,9 +1,5 @@
 ﻿using System;
-#if BUILD64
-using size_t = System.UInt64;
-#else
-using size_t = System.UInt32;
-#endif
+using size_t = System.UIntPtr;
 
 namespace ZstdNet
 {
@@ -43,12 +39,12 @@ namespace ZstdNet
 
 		private bool disposed = false;
 
-		public byte[] Unwrap(byte[] src, size_t maxDecompressedSize = size_t.MaxValue)
+		public byte[] Unwrap(byte[] src, int maxDecompressedSize = int.MaxValue)
 		{
 			return Unwrap(new ArraySegment<byte>(src), maxDecompressedSize);
 		}
 
-		public byte[] Unwrap(ArraySegment<byte> src, size_t maxDecompressedSize = size_t.MaxValue)
+		public byte[] Unwrap(ArraySegment<byte> src, int maxDecompressedSize = int.MaxValue)
 		{
 			if(src.Count == 0)
 				return new byte[0];
@@ -56,7 +52,7 @@ namespace ZstdNet
 			var expectedDstSize = GetDecompressedSize(src);
 			if(expectedDstSize == 0)
 				throw new ZstdException("Can't create buffer for data with unspecified decompressed size (provide your own buffer to Unwrap instead)");
-			if(expectedDstSize > maxDecompressedSize)
+			if(expectedDstSize > (ulong)maxDecompressedSize)
 				throw new ArgumentOutOfRangeException(string.Format("Decompressed size is too big ({0} bytes > authorized {1} bytes)", expectedDstSize, maxDecompressedSize));
 			var dst = new byte[expectedDstSize];
 

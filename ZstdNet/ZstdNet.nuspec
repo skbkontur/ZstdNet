@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <title>$id$</title>
+    <authors>$author$</authors>
+    <owners>$author$</owners>
+    <licenseUrl>https://github.com/skbkontur/ZstdNet/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/skbkontur/ZstdNet</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>$description$</description>
+    <copyright>$copyright$</copyright>
+    <tags>zstd zstandard compression</tags>
+  </metadata>
+  <files>
+    <file src="build\**" target="build" />
+  </files>
+</package>
