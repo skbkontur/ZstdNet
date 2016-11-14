@@ -1,6 +1,8 @@
 ZstdNet
 =======
 
+[![NuGet](https://img.shields.io/nuget/v/ZstdNet.svg)](https://www.nuget.org/packages/ZstdNet/)
+
 **ZstdNet** is a wrapper of **Zstd** native library for .NET languages. The following features are implemented:
 
 * Compression and decompression of byte arrays
