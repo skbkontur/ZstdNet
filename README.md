@@ -8,7 +8,7 @@ ZstdNet
 * Compression and decompression of byte arrays
 * Dictionary generation from a collection of samples
 
-Streaming APIs are not implemented yet.
+Streaming APIs are not implemented.
 
 Take a look on library reference or unit tests to explore its behavior in different situations.
 
