@@ -30,7 +30,7 @@ namespace ZstdNet
 
 		// ReSharper disable once InconsistentNaming
 		// NOTE that this const may change on zstdlib update
-		private const int ZSTD_error_dstSize_tooSmall = 11;
+		private const int ZSTD_error_dstSize_tooSmall = 12;
 
 		public static IntPtr EnsureZstdSuccess(this IntPtr returnValue)
 		{

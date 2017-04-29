@@ -371,7 +371,7 @@ namespace ZstdNet.Tests
 
 		private static byte[] GenerateSample()
 		{
-			return Enumerable.Range(0, 3)
+			return Enumerable.Range(0, 10)
 				.SelectMany(_ => Encoding.ASCII.GetBytes(string.Format("['a': 'constant_field', 'b': '{0}', 'c': {1}, 'd': '{2} constant field']",
 					Random.Next(), Random.Next(), Random.Next(1) == 1 ? "almost" : "sometimes")))
 				.ToArray();

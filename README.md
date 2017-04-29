@@ -37,7 +37,7 @@ Reference
 ### Requirements
 
 *ZstdNet* requires *Zstdlib* >= v1.0.0. Both 32-bit and 64-bit versions are supported.
-The corresponding DLLs (compiled from v1.1.0 using Visual C++) are included in this repository.
+The corresponding DLLs (compiled from v1.2.0 using Visual C++) are included in this repository.
 
 ### Exceptions
 
