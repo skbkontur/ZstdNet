@@ -198,6 +198,6 @@ performance and memory overhead.
 Wrapper Authors
 ---------------
 
-Copyright (c) 2016 [SKB Kontur](https://kontur.ru/eng/about)
+Copyright (c) 2016-2017 [SKB Kontur](https://kontur.ru/eng/about)
 
 *ZstdNet* is distributed under [BSD 3-Clause License](LICENSE).
