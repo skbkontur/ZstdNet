@@ -10,20 +10,25 @@ namespace ZstdNet
 	{
 		static ExternMethods()
 		{
-			var assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-			if (assemblyPath == null)
-				throw new InvalidOperationException("Failed to get assembly directory");
-			var platform = Environment.Is64BitProcess ? "x64" : "x86";
+			if(Environment.OSVersion.Platform == PlatformID.Win32NT)
+				SetWinDllDirectory();
+		}
 
-			var ok = SetDllDirectory(Path.Combine(assemblyPath, platform));
-			if (!ok)
+		private static void SetWinDllDirectory()
+		{
+			var assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+			if(assemblyPath == null)
+				throw new InvalidOperationException("Failed to get assembly directory");
+
+			var platform = Environment.Is64BitProcess ? "x64" : "x86";
+			if(!SetDllDirectory(Path.Combine(assemblyPath, platform)))
 				throw new InvalidOperationException("Failed to set DLL directory");
 		}
 
 		[DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
 		private static extern bool SetDllDirectory(string path);
 
-		private const string DllName = "libzstd.dll";
+		private const string DllName = "libzstd";
 
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
 		public static extern size_t ZDICT_trainFromBuffer(byte[] dictBuffer, size_t dictBufferCapacity, byte[] samplesBuffer, size_t[] samplesSizes, uint nbSamples);
