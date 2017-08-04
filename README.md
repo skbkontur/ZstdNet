@@ -3,14 +3,14 @@ ZstdNet
 
 [![NuGet](https://img.shields.io/nuget/v/ZstdNet.svg)](https://www.nuget.org/packages/ZstdNet/)
 
-**ZstdNet** is a wrapper of **Zstd** native library for .NET languages. The following features are implemented:
+**ZstdNet** is a wrapper of **Zstd** native library for .NET languages. It has the following features:
 
 * Compression and decompression of byte arrays
-* Dictionary generation from a collection of samples
+* Generation of Dictionaries from a collection of samples
 
 Streaming APIs are not implemented.
 
-Take a look on library reference or unit tests to explore its behavior in different situations.
+Take a look on a library reference or unit tests to explore its behavior in different situations.
 
 Zstd
 ----
@@ -24,8 +24,8 @@ LZ4 covers). Zstandard is licensed under [BSD 3-Clause License](Native/LICENSE).
 **Zstd** is developed by Yann Collet and the source is available at:
 https://github.com/Cyan4973/zstd
 
-The motivation for development, the algorithm used and its properties are
-explained in the blog post that introduces the library:
+The motivation to develop of the algorithm, ways of use and its properties are
+explained in the blog that introduces the library:
 http://fastcompression.blogspot.com/2015/01/zstd-stronger-compression-algorithm.html
 
 The benefits of the dictionary mode are described here:
@@ -42,17 +42,17 @@ The corresponding DLLs (compiled from v1.2.0 using Visual C++) are included in t
 ### Exceptions
 
 The wrapper throws `ZstdException` in case of malformed data or an error inside *Zstdlib*.
-If the given destination buffer is too small, `InsufficientMemoryException` is thrown.
+If the given destination buffer is too small, `InsufficientMemoryException` is thrown away.
 
 ### Compressor class
 
-Allocates buffers for performing compression. Instances of this class are **not** thread-safe.
+Allocates buffers for compression. Instances of this class are **not** thread-safe.
 
 * `new Compressor()`
 
   `new Compressor(CompressionOptions options)`
 
-  Constructors allow to specify compression options. Otherwise, default values for `CompressionOptions` will be used.
+  Constructors allow specifying compression options. Otherwise, default values will be used for `CompressionOptions`.
   Options will be exposed in `Options` read-only field.
 
   Note that `Compressor` class implements `IDisposable`.
@@ -73,8 +73,8 @@ Allocates buffers for performing compression. Instances of this class are **not*
 
   `int Wrap(ArraySegment<byte> src, byte[] dst, int offset)`
 
-  These methods compress data and save it in a new buffer or
-  an existing one (in such case a length of saved data will be returned).
+  These methods compress data and save it in a new or
+  an existing buffer (in such case a length of saved data will be returned).
 
 * `static int GetCompressBound(int size)`
 
@@ -120,7 +120,7 @@ Allocates buffers for performing decompression. Instances of this class are **no
 
   `new Decompressor(DecompressionOptions options)`
 
-  Constructors allow to specify decompression options. Otherwise, default values for `DecompressionOptions` will be used.
+  Constructors allow specifying decompression options. Otherwise, default values for `DecompressionOptions` will be used.
   Options will be exposed in `Options` read-only field.
 
   Note that `Decompressor` class implements `IDisposable`.
@@ -141,15 +141,15 @@ Allocates buffers for performing decompression. Instances of this class are **no
 
   `int Unwrap(ArraySegment<byte> src, byte[] dst, int offset, bool bufferSizePrecheck = true)`
 
-  These methods decompress data and save it in a new buffer or
-  an existing one (in such case a length of saved data will be returned).
+  These methods decompress data and save it in a new or
+  an existing buffer (in such case a length of saved data will be returned).
 
   Data can be saved to a new buffer only if a field with decompressed data size
   is present in compressed data. You can limit size of the new buffer with
   `maxDecompressedSize` parameter (it's necessary to do this on untrusted data).
 
   If `bufferSizePrecheck` flag is set and the decompressed field length is specified,
-  size of the destination buffer will be checked before actual decompression.
+  the size of the destination buffer will be checked before actual decompression.
 
   Note that if this field is malformed (and is less than actual decompressed data size),
   *Zstdlib* still doesn't allow a buffer overflow to happen during decompression.
@@ -189,7 +189,7 @@ performance and memory overhead.
 
 * `static byte[] TrainFromBuffer(ICollection<byte[]> samples, int dictCapacity = DefaultDictCapacity)`
 
-  Generate a compression dictionary from a collection of samples.
+  Generates a compression dictionary from a collection of samples.
 
   Options:
     - `int dictCapacity` &mdash; maximal dictionary size in bytes.
