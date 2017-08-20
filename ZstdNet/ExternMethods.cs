@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -16,13 +17,22 @@ namespace ZstdNet
 
 		private static void SetWinDllDirectory()
 		{
-			var assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-			if(assemblyPath == null)
-				throw new InvalidOperationException("Failed to get assembly directory");
+			string path;
+
+			var location = Assembly.GetExecutingAssembly().Location;
+			if(string.IsNullOrEmpty(location) || (path = Path.GetDirectoryName(location)) == null)
+			{
+				Trace.TraceWarning($"{nameof(ZstdNet)}: Failed to get executing assembly location");
+				return;
+			}
+
+			// Nuget package
+			if(Path.GetFileName(path).StartsWith("net", StringComparison.Ordinal) && Path.GetFileName(Path.GetDirectoryName(path)) == "lib" && File.Exists(Path.Combine(path, "../../zstdnet.nuspec")))
+				path = Path.Combine(path, "../../build");
 
 			var platform = Environment.Is64BitProcess ? "x64" : "x86";
-			if(!SetDllDirectory(Path.Combine(assemblyPath, platform)))
-				throw new InvalidOperationException("Failed to set DLL directory");
+			if(!SetDllDirectory(Path.Combine(path, platform)))
+				Trace.TraceWarning($"{nameof(ZstdNet)}: Failed to set DLL directory to '{path}'");
 		}
 
 		[DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
