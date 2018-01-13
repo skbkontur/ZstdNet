@@ -5,25 +5,32 @@ namespace ZstdNet
 {
 	internal class ArraySegmentPtr : IDisposable
 	{
-		public ArraySegmentPtr(ArraySegment<byte> segment)
+		public ArraySegmentPtr(ArraySegment<byte> segment) : this(segment.Array, segment.Offset, segment.Count)
 		{
-			handle = GCHandle.Alloc(segment.Array, GCHandleType.Pinned);
-			arr = segment.Array;
-			offset = segment.Offset;
 		}
 
-		public static implicit operator IntPtr(ArraySegmentPtr pinner)
+        public ArraySegmentPtr(byte[] buffer, int offset, int count)
+        {
+            handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+            this.offset = offset;
+            this.count = count;
+        }
+
+        public byte[] Buffer => handle.Target as byte[];
+        public int Length => count;
+
+        public static implicit operator IntPtr(ArraySegmentPtr pinner)
 		{
-			return Marshal.UnsafeAddrOfPinnedArrayElement(pinner.arr, pinner.offset);
+			return Marshal.UnsafeAddrOfPinnedArrayElement(pinner.Buffer, pinner.offset);
 		}
 
 		public void Dispose()
 		{
 			handle.Free();
 		}
-
-		private GCHandle handle;
-		private readonly byte[] arr;
+        
+        private GCHandle handle;
 		private readonly int offset;
-	}
+        private readonly int count;
+    }
 }
