@@ -52,6 +52,8 @@ namespace ZstdNet
 
 		public const int DefaultCompressionLevel = 3; // Used by zstd utility by default
 
+		internal static CompressionOptions DefaultCompressionOptions { get; } = new CompressionOptions(DefaultCompressionLevel);
+
 		public readonly int CompressionLevel;
 		public readonly byte[] Dictionary;
 

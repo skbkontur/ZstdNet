@@ -6,7 +6,7 @@ namespace ZstdNet
 	public class Compressor : IDisposable
 	{
 		public Compressor()
-			: this(new CompressionOptions(CompressionOptions.DefaultCompressionLevel))
+			: this(CompressionOptions.DefaultCompressionOptions)
 		{ }
 
 		public Compressor(CompressionOptions options)
@@ -82,7 +82,7 @@ namespace ZstdNet
 			var dstCapacity = dst.Length - offset;
 			size_t dstSize;
 			using(var srcPtr = new ArraySegmentPtr(src))
-			using(var dstPtr = new ArraySegmentPtr(new ArraySegment<byte>(dst, offset, dstCapacity)))
+			using(var dstPtr = new ArraySegmentPtr(dst, offset, dstCapacity))
 			{
 				if(Options.Cdict == IntPtr.Zero)
 					dstSize = ExternMethods.ZSTD_compressCCtx(cctx, dstPtr, (size_t)dstCapacity, srcPtr, (size_t)src.Count, Options.CompressionLevel);

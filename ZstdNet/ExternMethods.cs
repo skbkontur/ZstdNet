@@ -87,5 +87,75 @@ namespace ZstdNet
 		public static extern uint ZSTD_isError(size_t code);
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
 		public static extern IntPtr ZSTD_getErrorName(size_t code);
+
+		#region Streaming APIs
+
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern IntPtr ZSTD_createCStream();
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_freeCStream(IntPtr zcs);
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_initCStream(IntPtr zcs, int compressionLevel);
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_compressStream(IntPtr zcs, ref ZSTD_Buffer output, ref ZSTD_Buffer input);
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_flushStream(IntPtr zcs, ref ZSTD_Buffer output);
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_endStream(IntPtr zcs, ref ZSTD_Buffer output);
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_CStreamInSize();
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_CStreamOutSize();
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern IntPtr ZSTD_createDStream();
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_freeDStream(IntPtr zds);
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_initDStream(IntPtr zds);
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_decompressStream(IntPtr zds, ref ZSTD_Buffer output, ref ZSTD_Buffer input);
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_DStreamInSize();
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_DStreamOutSize();
+
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_initDStream_usingDDict(IntPtr zds, IntPtr dict);
+
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_initCStream_usingCDict(IntPtr zds, IntPtr dict);
+
+		[StructLayout(LayoutKind.Sequential)]
+		internal struct ZSTD_Buffer
+		{
+			public ZSTD_Buffer(ArraySegmentPtr segmentPtr)
+			{
+				buffer = segmentPtr;
+				size = (size_t)segmentPtr.Length;
+				pos = default(size_t);
+			}
+
+			/// <summary>
+			/// Start of the buffer
+			/// </summary>
+			public IntPtr buffer;
+
+			/// <summary>
+			/// Size of the buffer
+			/// </summary>
+			public size_t size;
+
+			/// <summary>
+			/// Position where reading/writing stopped. Will be updated. Necessarily 0 <= pos <= size
+			/// </summary>
+			public size_t pos;
+
+			public bool IsFullyConsumed => UnconsumedSpace <= 0;
+			public int UnconsumedSpace => IntSize - IntPos;
+			public int IntSize => (int)size;
+			public int IntPos => (int)pos;
+		}
+
+		#endregion
 	}
 }
