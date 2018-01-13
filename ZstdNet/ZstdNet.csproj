@@ -7,7 +7,7 @@
 		<Company>SKB Kontur</Company>
 		<Authors>SKB Kontur</Authors>
 		<Description>Zstd compression library wrapper for .NET</Description>
-		<Copyright>Copyright © SKB Kontur 2016-2017</Copyright>
+		<Copyright>Copyright © SKB Kontur 2016-2018</Copyright>
 		<PackageLicenseUrl>https://github.com/skbkontur/ZstdNet/blob/master/LICENSE</PackageLicenseUrl>
 		<PackageProjectUrl>https://github.com/skbkontur/ZstdNet</PackageProjectUrl>
 		<PackageTags>zstd zstandard compression</PackageTags>
