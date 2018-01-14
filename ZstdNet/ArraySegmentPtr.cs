@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace ZstdNet
 {
-	internal class ArraySegmentPtr : IDisposable
+	internal struct ArraySegmentPtr : IDisposable
 	{
 		public ArraySegmentPtr(ArraySegment<byte> segment)
 		{
