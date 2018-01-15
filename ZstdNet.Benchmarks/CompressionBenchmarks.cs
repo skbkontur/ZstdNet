@@ -5,7 +5,7 @@ using BenchmarkDotNet.Running;
 namespace ZstdNet.Benchmarks
 {
     [MemoryDiagnoser]
-    public class CompressionBenchmarks
+    public class CompressionOverheadBenchmarks
     {
         const int TestSize = 1024;
 
@@ -17,7 +17,7 @@ namespace ZstdNet.Benchmarks
         Compressor Compressor = new Compressor(new CompressionOptions(1));
         Decompressor Decompressor = new Decompressor();
 
-        public CompressionBenchmarks()
+        public CompressionOverheadBenchmarks()
         {
             var r = new Random(0);
             r.NextBytes(UncompressedData);

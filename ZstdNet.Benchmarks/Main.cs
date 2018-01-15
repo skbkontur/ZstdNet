@@ -6,7 +6,7 @@ namespace ZstdNet.Benchmarks
     {
         static void Main(string[] args)
         {
-            BenchmarkRunner.Run<CompressionBenchmarks>();
+            BenchmarkRunner.Run<CompressionOverheadBenchmarks>();
         }
     }
 }

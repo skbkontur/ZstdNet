@@ -9,6 +9,11 @@ namespace ZstdNet
 		{
 		}
 
+        public ArraySegmentPtr(byte[] array) : this(array, 0, array.Length)
+        {
+
+        }
+
         public ArraySegmentPtr(byte[] buffer, int offset, int count)
         {
             handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
@@ -16,12 +21,12 @@ namespace ZstdNet
             this.count = count;
         }
 
-        public byte[] Buffer => handle.Target as byte[];
+        public byte[] Array => handle.Target as byte[];
         public int Length => count;
 
         public static implicit operator IntPtr(ArraySegmentPtr pinner)
 		{
-			return Marshal.UnsafeAddrOfPinnedArrayElement(pinner.Buffer, pinner.offset);
+			return Marshal.UnsafeAddrOfPinnedArrayElement(pinner.Array, pinner.offset);
 		}
 
 		public void Dispose()

@@ -1,39 +1,71 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
+using static ZstdNet.ExternMethods;
 
 namespace ZstdNet
 {
     public class CompressorStream : Stream, IDisposable
     {
-        private IntPtr ZSTD_CStream;
-        public readonly CompressionOptions Options;
+        private readonly IntPtr CStream;
+        private readonly Stream InnerStream;
         private readonly ArraySegmentPtr OutputBuffer;
 
-        private readonly Stream InnerStream;
+        private ZSTD_Buffer OutputBufferState;
 
-        public CompressorStream(Stream stream) : this(stream, new CompressionOptions(CompressionOptions.DefaultCompressionLevel))
+        public CompressorStream(Stream stream) : this(stream, CompressionOptions.DefaultCompressionOptions)
         {
             
         }
 
-        public CompressorStream(Stream stream, CompressionOptions compressionOptions, int bufferSize = 32 * 1024)
+        public CompressorStream(Stream stream, CompressionOptions compressionOptions)
         {
             InnerStream = stream;
 
-            ZSTD_CStream = ExternMethods.ZSTD_createCStream();
-            
-            OutputBuffer = new ArraySegmentPtr(new ArraySegment<byte>(new byte[Compressor.GetCompressBound(bufferSize)]));
+            CStream = ZSTD_createCStream();
+            ZSTD_initCStream(CStream, compressionOptions.CompressionLevel).EnsureZstdSuccess();
 
-            ExternMethods.ZSTD_initCStream(ZSTD_CStream, compressionOptions.CompressionLevel).EnsureZstdSuccess();
+            OutputBuffer = CreateOutputBuffer();
+            InitializedOutputBufferState();
+        }
+
+        private static ArraySegmentPtr CreateOutputBuffer()
+        {
+            var outputBufferSize = (int)ZSTD_CStreamOutSize();
+            var outputArray = new byte[outputBufferSize];
+            return new ArraySegmentPtr(outputArray, 0, outputArray.Length);
+        }
+
+        private void InitializedOutputBufferState()
+        {
+            OutputBufferState = new ZSTD_Buffer(OutputBuffer);
+        }
+
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            using (var inBuffer = new ArraySegmentPtr(buffer, offset, count))
+            {
+                var inputBufferState = new ZSTD_Buffer(inBuffer);
+
+                while (!inputBufferState.IsFullyConsumed)
+                {
+                    if (OutputBufferState.IsFullyConsumed)
+                        FlushOutputBuffer();
+
+                    ZSTD_compressStream(CStream, ref OutputBufferState, ref inputBufferState).EnsureZstdSuccess();
+                }
+            }
+        }
+
+        private void FlushOutputBuffer()
+        {
+            InnerStream.Write(OutputBuffer.Array, 0, OutputBufferState.IntPos);
+            OutputBufferState.pos = UIntPtr.Zero;
         }
 
         ~CompressorStream()
         {
-            Dispose(true);
+            Close();
         }
 
         public override bool CanRead => false;
@@ -42,40 +74,44 @@ namespace ZstdNet
 
         public override bool CanWrite => true;
 
-        public override void Flush() => InnerStream.Flush();
-
-        public override void Write(byte[] buffer, int offset, int count)
-        {
-            using (var ptr = new ArraySegmentPtr(buffer, offset, count))
-            {
-                var inBuffer = new ExternMethods.ZSTD_Buffer(ptr);
-                
-                while ((int)inBuffer.pos < (int)inBuffer.size)
-                {
-                    var outBuffer = new ExternMethods.ZSTD_Buffer(OutputBuffer);
-                    ExternMethods.ZSTD_compressStream(ZSTD_CStream, ref outBuffer, ref inBuffer).EnsureZstdSuccess();
-                    InnerStream.Write(OutputBuffer.Buffer, 0, (int)outBuffer.pos);
-                }
-            }
-        }
+        public override long Length => throw new NotSupportedException();
 
         public override long Position
         {
             get => InnerStream.Position;
             set => throw new NotSupportedException();
         }
-        public override long Length => throw new NotSupportedException();
+
+        public override void Flush()
+        {
+            FlushOutputBuffer();
+            InnerStream.Flush();
+        }
+
+       
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
         public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 
         protected override void Dispose(bool disposing)
         {
-            base.Dispose(disposing);
-            var outBuffer = new ExternMethods.ZSTD_Buffer(OutputBuffer);
-            ExternMethods.ZSTD_endStream(ZSTD_CStream, ref outBuffer);
-            ExternMethods.ZSTD_freeCStream(ZSTD_CStream);
-            OutputBuffer.Dispose();
+            try
+            {
+                var endResult = ZSTD_endStream(CStream, ref OutputBufferState).EnsureZstdSuccess();
+                if (UIntPtr.Zero != endResult)
+                {
+                    FlushOutputBuffer();
+
+                    ZSTD_endStream(CStream, ref OutputBufferState).EnsureZstdSuccess();
+                }
+
+                FlushOutputBuffer();
+            }
+            finally
+            {
+                ZSTD_freeCStream(CStream);
+                OutputBuffer.Dispose();
+            }
         }
     }
 }

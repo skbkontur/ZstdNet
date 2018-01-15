@@ -92,7 +92,6 @@ namespace ZstdNet
 
 
         #region Streaming APIs
-        //Compression
         //ZSTD_CStream* ZSTD_createCStream(void);
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr ZSTD_createCStream();
@@ -133,13 +132,47 @@ namespace ZstdNet
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern size_t ZSTD_flushStream(IntPtr zcs, ref ZSTD_Buffer output);
 
-
         //size_t ZSTD_endStream(ZSTD_CStream* zcs, ZSTD_outBuffer* output);
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern size_t ZSTD_endStream(IntPtr zcs, ref ZSTD_Buffer output);
 
+        //size_t ZSTD_CStreamInSize(void);    /**< recommended size for input buffer */
+        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern size_t ZSTD_CStreamInSize();
+        //size_t ZSTD_CStreamOutSize(void);   /**< recommended size for output buffer. Guarantee to successfully flush at least one complete compressed block in all circumstances. */
+        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern size_t ZSTD_CStreamOutSize();
 
-        //Decompression
+
+        //ZSTD_DStream* ZSTD_createDStream(void);
+        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern IntPtr ZSTD_createDStream();
+
+        //size_t ZSTD_freeDStream(ZSTD_DStream* zds);
+        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern size_t ZSTD_freeDStream(IntPtr zds);
+
+
+
+        //size_t ZSTD_initDStream(ZSTD_DStream* zds);
+        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern size_t ZSTD_initDStream(IntPtr zds);
+
+
+
+        //size_t ZSTD_decompressStream(ZSTD_DStream* zds, ZSTD_outBuffer* output, ZSTD_inBuffer* input);
+        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern size_t ZSTD_decompressStream(IntPtr zds, ref ZSTD_Buffer output, ref ZSTD_Buffer input);
+
+        //size_t ZSTD_DStreamInSize(void);    /*!< recommended size for input buffer */
+        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern size_t ZSTD_DStreamInSize();
+
+
+        //size_t ZSTD_DStreamOutSize(void);   /*!< recommended size for output buffer. Guarantee to successfully flush at least one complete block in all circumstances. */
+        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern size_t ZSTD_DStreamOutSize();
+
 
 
         [StructLayout(LayoutKind.Sequential)]
@@ -153,76 +186,26 @@ namespace ZstdNet
             }
 
             /// <summary>
-            /// Start of buffer
+            /// Start of the buffer
             /// </summary>
             public IntPtr buffer;
 
             /// <summary>
-            /// Size of output buffer
+            /// Size of the buffer
             /// </summary>
             public size_t size;
 
             /// <summary>
-            /// Position where writing stopped. Will be updated. Necessarily 0 <= pos <= size
+            /// Position where reading/writing stopped. Will be updated. Necessarily 0 <= pos <= size
             /// </summary>
             public size_t pos;
+
+            public bool IsFullyConsumed => UnconsumedSpace <= 0;
+            public int UnconsumedSpace => IntSize - IntPos;
+            public int IntSize => (int)size;
+            public int IntPos => (int)pos;
         }
-
-
-        //[StructLayout(LayoutKind.Sequential)]
-        //internal struct ZSTD_outBuffer
-        //{
-        //    public ZSTD_outBuffer(ArraySegmentPtr segmentPtr)
-        //    {
-        //        dst = segmentPtr;
-        //        size = default(size_t);
-        //        pos = default(size_t);
-        //    }
-
-        //    /// <summary>
-        //    /// Start of output buffer
-        //    /// </summary>
-        //    public IntPtr dst;
-
-        //    /// <summary>
-        //    /// Size of output buffer
-        //    /// </summary>
-        //    public size_t size;
-
-        //    /// <summary>
-        //    /// Position where writing stopped. Will be updated. Necessarily 0 <= pos <= size
-        //    /// </summary>
-        //    public size_t pos;
-        //}
-
-        //[StructLayout(LayoutKind.Sequential)]
-        //internal struct ZSTD_inBuffer
-        //{
-        //    public ZSTD_inBuffer(ArraySegmentPtr segmentPtr)
-        //    {
-        //        src = segmentPtr;
-        //        size = (size_t)segmentPtr.Length;
-        //        pos = default(size_t);
-        //    }
-
-        //    /// <summary>
-        //    /// Start of input buffer
-        //    /// </summary>
-        //    public readonly IntPtr src;
-
-        //    /// <summary>
-        //    /// Size of input buffer
-        //    /// </summary>
-        //    public size_t size;
-
-        //    /// <summary>
-        //    /// Position where reading stopped. Will be updated. Necessarily 0 <= pos <= size
-        //    /// </summary>
-        //    public size_t pos;
-        //}
         #endregion
     }
-
-
 }
 
