@@ -92,87 +92,42 @@ namespace ZstdNet
 
 
         #region Streaming APIs
-        //ZSTD_CStream* ZSTD_createCStream(void);
+        
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr ZSTD_createCStream();
-
-
-        //size_t ZSTD_freeCStream(ZSTD_CStream* zcs);
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern size_t ZSTD_freeCStream(IntPtr zcs);
-
-        //size_t ZSTD_initCStream(ZSTD_CStream* zcs, int compressionLevel);
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern size_t ZSTD_initCStream(IntPtr zcs, int compressionLevel);
-
-
-
-        /// <summary>
-        /// Use repetitively to consume input stream. 
-        /// The function will automatically update both pos fields. 
-        /// Note that it may not consume the entire input, in which case pos &lt; size, and it's up to the caller to present again remaining data.
-        /// </summary>
-        /// <param name="zcs"></param>
-        /// <param name="output"></param>
-        /// <param name="input"></param>
-        /// <returns>
-        /// A size hint, preferred nb of bytes to use as input for next function call or an error code, which can be tested using ZSTD_isError(). 
-        /// 
-        /// Note 1 : it's just a hint, to help latency a little, any other value will work fine. 
-        /// Note 2 : size hint is guaranteed to be &lt= ZSTD_CStreamInSize()
-        /// </returns>
-        /// <remarks>
-        /// size_t ZSTD_compressStream(ZSTD_CStream* zcs, ZSTD_outBuffer* output, ZSTD_inBuffer* input);
-        /// </remarks>
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern size_t ZSTD_compressStream(IntPtr zcs, ref ZSTD_Buffer output, ref ZSTD_Buffer input);
-
-
-        //size_t ZSTD_flushStream(ZSTD_CStream* zcs, ZSTD_outBuffer* output);
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern size_t ZSTD_flushStream(IntPtr zcs, ref ZSTD_Buffer output);
-
-        //size_t ZSTD_endStream(ZSTD_CStream* zcs, ZSTD_outBuffer* output);
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern size_t ZSTD_endStream(IntPtr zcs, ref ZSTD_Buffer output);
-
-        //size_t ZSTD_CStreamInSize(void);    /**< recommended size for input buffer */
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern size_t ZSTD_CStreamInSize();
-        //size_t ZSTD_CStreamOutSize(void);   /**< recommended size for output buffer. Guarantee to successfully flush at least one complete compressed block in all circumstances. */
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern size_t ZSTD_CStreamOutSize();
-
-
-        //ZSTD_DStream* ZSTD_createDStream(void);
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr ZSTD_createDStream();
-
-        //size_t ZSTD_freeDStream(ZSTD_DStream* zds);
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern size_t ZSTD_freeDStream(IntPtr zds);
-
-
-
-        //size_t ZSTD_initDStream(ZSTD_DStream* zds);
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern size_t ZSTD_initDStream(IntPtr zds);
-
-
-
-        //size_t ZSTD_decompressStream(ZSTD_DStream* zds, ZSTD_outBuffer* output, ZSTD_inBuffer* input);
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern size_t ZSTD_decompressStream(IntPtr zds, ref ZSTD_Buffer output, ref ZSTD_Buffer input);
-
-        //size_t ZSTD_DStreamInSize(void);    /*!< recommended size for input buffer */
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern size_t ZSTD_DStreamInSize();
-
-
-        //size_t ZSTD_DStreamOutSize(void);   /*!< recommended size for output buffer. Guarantee to successfully flush at least one complete block in all circumstances. */
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         public static extern size_t ZSTD_DStreamOutSize();
 
+
+        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern size_t ZSTD_initDStream_usingDDict(IntPtr zds, IntPtr dict);
+
+        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+        public static extern size_t ZSTD_initCStream_usingCDict(IntPtr zds, IntPtr dict);
 
 
         [StructLayout(LayoutKind.Sequential)]

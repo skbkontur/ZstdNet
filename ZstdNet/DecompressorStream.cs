@@ -9,6 +9,7 @@ namespace ZstdNet
     {
         private readonly IntPtr DStream;
         private readonly Stream InnerStream;
+        private readonly DecompressionOptions Options;
         private readonly ArraySegmentPtr InputBuffer;
 
         private ZSTD_Buffer InputBufferState;
@@ -21,9 +22,12 @@ namespace ZstdNet
         public DecompressorStream(Stream stream, DecompressionOptions options)
         {
             InnerStream = stream;
-
+            Options = options;
             DStream = ZSTD_createDStream();
-            ZSTD_initDStream(DStream);
+            if (options == null || options.Ddict == IntPtr.Zero)
+                ZSTD_initDStream(DStream);
+            else
+                ZSTD_initDStream_usingDDict(DStream, options.Ddict);
 
             InputBuffer = CreateInputBuffer();
             InitializeInputBufferState();

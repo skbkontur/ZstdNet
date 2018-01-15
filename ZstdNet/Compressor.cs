@@ -6,7 +6,7 @@ namespace ZstdNet
 	public class Compressor : IDisposable
 	{
 		public Compressor()
-			: this(new CompressionOptions(CompressionOptions.DefaultCompressionLevel))
+			: this(CompressionOptions.DefaultCompressionOptions)
 		{ }
 
 		public Compressor(CompressionOptions options)

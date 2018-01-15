@@ -9,6 +9,7 @@ namespace ZstdNet
     {
         private readonly IntPtr CStream;
         private readonly Stream InnerStream;
+        private readonly CompressionOptions Options;
         private readonly ArraySegmentPtr OutputBuffer;
 
         private ZSTD_Buffer OutputBufferState;
@@ -18,12 +19,15 @@ namespace ZstdNet
             
         }
 
-        public CompressorStream(Stream stream, CompressionOptions compressionOptions)
+        public CompressorStream(Stream stream, CompressionOptions options)
         {
             InnerStream = stream;
-
+            Options = options;
             CStream = ZSTD_createCStream();
-            ZSTD_initCStream(CStream, compressionOptions.CompressionLevel).EnsureZstdSuccess();
+            if (options.Cdict == IntPtr.Zero)
+                ZSTD_initCStream(CStream, options.CompressionLevel).EnsureZstdSuccess();
+            else
+                ZSTD_initCStream_usingCDict(CStream, options.Cdict).EnsureZstdSuccess();
 
             OutputBuffer = CreateOutputBuffer();
             InitializedOutputBufferState();
@@ -78,7 +82,7 @@ namespace ZstdNet
 
         public override long Position
         {
-            get => InnerStream.Position;
+            get => throw new NotSupportedException();
             set => throw new NotSupportedException();
         }
 
@@ -87,7 +91,6 @@ namespace ZstdNet
             FlushOutputBuffer();
             InnerStream.Flush();
         }
-
        
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();

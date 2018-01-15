@@ -17,8 +17,6 @@ namespace ZstdNet.Tests
         public const int LargeBufferSize = 1 * 1024 * 1024;
         public const int SmallBufferSize = 1 * 1024;
 
-
-
         public static MemoryStream GetSmallStream(DataFill dataFill) => new MemoryStream(GetBuffer(SmallBufferSize, dataFill));
 
         public static MemoryStream GetLargeStream(DataFill dataFill) => new MemoryStream(GetBuffer(LargeBufferSize, dataFill));
@@ -49,15 +47,38 @@ namespace ZstdNet.Tests
     public class SteamingTests
     {
         [Test]
+        public void CompressionImprovesWithDictionary()
+        {
+            var trainingData = new byte[100][];
+            for (int i = 0; i < trainingData.Length; i++)
+                trainingData[i] = DataGenerator.GetSmallBuffer(DataFill.Random);
+
+            var dict = DictBuilder.TrainFromBuffer(trainingData);
+
+            var compressionOptions = new CompressionOptions(dict);
+
+            var testStream = DataGenerator.GetSmallStream(DataFill.Random);
+            var normalResultStream = new MemoryStream();
+
+            using (var compressionStream = new CompressorStream(normalResultStream))
+                testStream.CopyTo(compressionStream);
+
+            var dictResultStream = new MemoryStream();
+
+            using (var compressionStream = new CompressorStream(dictResultStream, compressionOptions))
+                testStream.CopyTo(compressionStream);
+
+            Assert.Greater(normalResultStream.Length, dictResultStream.Length);
+        }
+
+        [Test]
         public void CompressionShrinksData()
         {
             var inStream = DataGenerator.GetLargeStream(DataFill.Sequential);
             var outStream = new MemoryStream();
 
-            using (var compressionStream = new CompressorStream(outStream))
-            {
-                inStream.CopyTo(compressionStream);
-            }
+            using (var compressionStream = new CompressorStream(outStream))            
+                inStream.CopyTo(compressionStream);            
 
             Assert.Greater(inStream.Length, outStream.Length);
         }
