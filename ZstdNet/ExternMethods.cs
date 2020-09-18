@@ -132,28 +132,14 @@ namespace ZstdNet
 			{
 				buffer = segmentPtr;
 				size = (size_t)segmentPtr.Length;
-				pos = default(size_t);
+				pos = size_t.Zero;
 			}
 
-			/// <summary>
-			/// Start of the buffer
-			/// </summary>
 			public IntPtr buffer;
-
-			/// <summary>
-			/// Size of the buffer
-			/// </summary>
 			public size_t size;
-
-			/// <summary>
-			/// Position where reading/writing stopped. Will be updated. Necessarily 0 <= pos <= size
-			/// </summary>
 			public size_t pos;
 
-			public bool IsFullyConsumed => UnconsumedSpace <= 0;
-			public int UnconsumedSpace => IntSize - IntPos;
-			public int IntSize => (int)size;
-			public int IntPos => (int)pos;
+			public bool IsFullyConsumed => (ulong)size <= (ulong)pos;
 		}
 
 		#endregion
