@@ -39,9 +39,6 @@ namespace ZstdNet
 
 		public byte[] Wrap(ArraySegment<byte> src)
 		{
-			if(src.Count == 0)
-				return new byte[0];
-
 			var dstCapacity = GetCompressBound(src.Count);
 			var dst = new byte[dstCapacity];
 
@@ -64,9 +61,6 @@ namespace ZstdNet
 		{
 			if(offset < 0 || offset >= dst.Length)
 				throw new ArgumentOutOfRangeException(nameof(offset));
-
-			if(src.Count == 0)
-				return 0;
 
 			var dstCapacity = dst.Length - offset;
 

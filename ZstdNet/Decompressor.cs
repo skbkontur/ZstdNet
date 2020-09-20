@@ -38,12 +38,7 @@ namespace ZstdNet
 
 		public byte[] Unwrap(ArraySegment<byte> src, int maxDecompressedSize = int.MaxValue)
 		{
-			if(src.Count == 0)
-				return new byte[0];
-
 			var expectedDstSize = GetDecompressedSize(src);
-			if(expectedDstSize == 0)
-				throw new ZstdException("Can't create buffer for data with unspecified decompressed size (provide your own buffer to Unwrap instead)");
 			if(expectedDstSize > (ulong)maxDecompressedSize)
 				throw new ArgumentOutOfRangeException($"Decompressed size is too big ({expectedDstSize} bytes > authorized {maxDecompressedSize} bytes)");
 			var dst = new byte[expectedDstSize];
@@ -87,11 +82,8 @@ namespace ZstdNet
 
 		public int Unwrap(ArraySegment<byte> src, byte[] dst, int offset, bool bufferSizePrecheck = true)
 		{
-			if(offset < 0 || offset >= dst.Length)
+			if(offset < 0 || offset > dst.Length)
 				throw new ArgumentOutOfRangeException(nameof(offset));
-
-			if(src.Count == 0)
-				return 0;
 
 			var dstCapacity = dst.Length - offset;
 			using(var srcPtr = new ArraySegmentPtr(src))
@@ -113,7 +105,7 @@ namespace ZstdNet
 				}
 
 				dstSize.EnsureZstdSuccess();
-				return (int) dstSize;
+				return (int)dstSize;
 			}
 		}
 
