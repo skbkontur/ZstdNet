@@ -60,7 +60,15 @@ namespace ZstdNet
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
 		public static extern size_t ZSTD_compressCCtx(IntPtr ctx, IntPtr dst, size_t dstCapacity, IntPtr src, size_t srcSize, int compressionLevel);
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_compressCCtx(IntPtr ctx, ref byte dst, size_t dstCapacity, ref byte src, size_t srcSize, int compressionLevel);
+		public static size_t ZSTD_compressCCtx(IntPtr ctx, Span<byte> dst, size_t dstCapacity, ReadOnlySpan<byte> src, size_t srcSize, int compressionLevel)
+			=> ZSTD_compressCCtx(ctx, ref MemoryMarshal.GetReference(dst), dstCapacity, ref MemoryMarshal.GetReference(src), srcSize, compressionLevel);
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
 		public static extern size_t ZSTD_decompressDCtx(IntPtr ctx, IntPtr dst, size_t dstCapacity, IntPtr src, size_t srcSize);
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_decompressDCtx(IntPtr ctx, ref byte dst, size_t dstCapacity, ref byte src, size_t srcSize);
+		public static size_t ZSTD_decompressDCtx(IntPtr ctx, Span<byte> dst, size_t dstCapacity, ReadOnlySpan<byte> src, size_t srcSize)
+			=> ZSTD_decompressDCtx(ctx, ref MemoryMarshal.GetReference(dst), dstCapacity, ref MemoryMarshal.GetReference(src), srcSize);
 
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
 		public static extern IntPtr ZSTD_createCDict(byte[] dict, size_t dictSize, int compressionLevel);
@@ -68,6 +76,10 @@ namespace ZstdNet
 		public static extern size_t ZSTD_freeCDict(IntPtr cdict);
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
 		public static extern size_t ZSTD_compress_usingCDict(IntPtr cctx, IntPtr dst, size_t dstCapacity, IntPtr src, size_t srcSize, IntPtr cdict);
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_compress_usingCDict(IntPtr cctx, ref byte dst, size_t dstCapacity, ref byte src, size_t srcSize, IntPtr cdict);
+		public static size_t ZSTD_compress_usingCDict(IntPtr cctx, Span<byte> dst, size_t dstCapacity, ReadOnlySpan<byte> src, size_t srcSize, IntPtr cdict)
+			=> ZSTD_compress_usingCDict(cctx, ref MemoryMarshal.GetReference(dst), dstCapacity, ref MemoryMarshal.GetReference(src), srcSize, cdict);
 
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
 		public static extern IntPtr ZSTD_createDDict(byte[] dict, size_t dictSize);
@@ -75,11 +87,19 @@ namespace ZstdNet
 		public static extern size_t ZSTD_freeDDict(IntPtr ddict);
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
 		public static extern size_t ZSTD_decompress_usingDDict(IntPtr dctx, IntPtr dst, size_t dstCapacity, IntPtr src, size_t srcSize, IntPtr ddict);
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_decompress_usingDDict(IntPtr dctx, ref byte dst, size_t dstCapacity, ref byte src, size_t srcSize, IntPtr ddict);
+		public static size_t ZSTD_decompress_usingDDict(IntPtr dctx, Span<byte> dst, size_t dstCapacity, ReadOnlySpan<byte> src, size_t srcSize, IntPtr ddict)
+			=> ZSTD_decompress_usingDDict(dctx, ref MemoryMarshal.GetReference(dst), dstCapacity, ref MemoryMarshal.GetReference(src), srcSize, ddict);
 
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
 		public static extern ulong ZSTD_getDecompressedSize(IntPtr src, size_t srcSize);
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
 		public static extern ulong ZSTD_getFrameContentSize(IntPtr src, size_t srcSize);
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern ulong ZSTD_getFrameContentSize(ref byte src, size_t srcSize);
+		public static ulong ZSTD_getFrameContentSize(ReadOnlySpan<byte> src, size_t srcSize)
+			=> ZSTD_getFrameContentSize(ref MemoryMarshal.GetReference(src), srcSize);
 
 		public const ulong ZSTD_CONTENTSIZE_UNKNOWN = unchecked(0UL - 1);
 		public const ulong ZSTD_CONTENTSIZE_ERROR = unchecked(0UL - 2);

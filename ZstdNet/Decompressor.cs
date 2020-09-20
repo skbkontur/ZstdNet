@@ -37,16 +37,20 @@ namespace ZstdNet
 			=> Unwrap(new ArraySegment<byte>(src), maxDecompressedSize);
 
 		public byte[] Unwrap(ArraySegment<byte> src, int maxDecompressedSize = int.MaxValue)
+			=> Unwrap((ReadOnlySpan<byte>)src, maxDecompressedSize);
+
+		public byte[] Unwrap(ReadOnlySpan<byte> src, int maxDecompressedSize = int.MaxValue)
 		{
 			var expectedDstSize = GetDecompressedSize(src);
 			if(expectedDstSize > (ulong)maxDecompressedSize)
 				throw new ArgumentOutOfRangeException($"Decompressed size is too big ({expectedDstSize} bytes > authorized {maxDecompressedSize} bytes)");
+
 			var dst = new byte[expectedDstSize];
 
 			int dstSize;
 			try
 			{
-				dstSize = Unwrap(src, dst, 0, false);
+				dstSize = Unwrap(src, new Span<byte>(dst), false);
 			}
 			catch(InsufficientMemoryException)
 			{
@@ -55,21 +59,19 @@ namespace ZstdNet
 
 			if((int)expectedDstSize != dstSize)
 				throw new ZstdException("Invalid decompressed size specified in the data");
+
 			return dst;
 		}
 
 		public static ulong GetDecompressedSize(byte[] src)
-			=> GetDecompressedSize(new ArraySegment<byte>(src));
+			=> GetDecompressedSize(new ReadOnlySpan<byte>(src));
 
 		public static ulong GetDecompressedSize(ArraySegment<byte> src)
-		{
-			using(var srcPtr = new ArraySegmentPtr(src))
-				return GetDecompressedSize(srcPtr, src.Count);
-		}
+			=> GetDecompressedSize((ReadOnlySpan<byte>)src);
 
-		private static ulong GetDecompressedSize(ArraySegmentPtr srcPtr, int count)
+		public static ulong GetDecompressedSize(ReadOnlySpan<byte> src)
 		{
-			var size = ExternMethods.ZSTD_getFrameContentSize(srcPtr, (size_t)count);
+			var size = ExternMethods.ZSTD_getFrameContentSize(src, (size_t)src.Length);
 			if(size == ExternMethods.ZSTD_CONTENTSIZE_UNKNOWN)
 				throw new ZstdException("Decompressed size cannot be determined");
 			if(size == ExternMethods.ZSTD_CONTENTSIZE_ERROR)
@@ -78,35 +80,33 @@ namespace ZstdNet
 		}
 
 		public int Unwrap(byte[] src, byte[] dst, int offset, bool bufferSizePrecheck = true)
-			=> Unwrap(new ArraySegment<byte>(src), dst, offset, bufferSizePrecheck);
+			=> Unwrap(new ReadOnlySpan<byte>(src), dst, offset, bufferSizePrecheck);
 
 		public int Unwrap(ArraySegment<byte> src, byte[] dst, int offset, bool bufferSizePrecheck = true)
+			=> Unwrap((ReadOnlySpan<byte>)src, dst, offset, bufferSizePrecheck);
+
+		public int Unwrap(ReadOnlySpan<byte> src, byte[] dst, int offset, bool bufferSizePrecheck = true)
 		{
 			if(offset < 0 || offset > dst.Length)
 				throw new ArgumentOutOfRangeException(nameof(offset));
 
-			var dstCapacity = dst.Length - offset;
-			using(var srcPtr = new ArraySegmentPtr(src))
+			return Unwrap(src, new Span<byte>(dst, offset, dst.Length - offset), bufferSizePrecheck);
+		}
+
+		public int Unwrap(ReadOnlySpan<byte> src, Span<byte> dst, bool bufferSizePrecheck = true)
+		{
+			if(bufferSizePrecheck)
 			{
-				if(bufferSizePrecheck)
-				{
-					var expectedDstSize = GetDecompressedSize(srcPtr, src.Count);
-					if((int)expectedDstSize > dstCapacity)
-						throw new InsufficientMemoryException("Buffer size is less than specified decompressed data size");
-				}
-
-				size_t dstSize;
-				using(var dstPtr = new ArraySegmentPtr(new ArraySegment<byte>(dst, offset, dstCapacity)))
-				{
-					if(Options.Ddict == IntPtr.Zero)
-						dstSize = ExternMethods.ZSTD_decompressDCtx(dctx, dstPtr, (size_t) dstCapacity, srcPtr, (size_t) src.Count);
-					else
-						dstSize = ExternMethods.ZSTD_decompress_usingDDict(dctx, dstPtr, (size_t) dstCapacity, srcPtr, (size_t) src.Count, Options.Ddict);
-				}
-
-				dstSize.EnsureZstdSuccess();
-				return (int)dstSize;
+				var expectedDstSize = GetDecompressedSize(src);
+				if((int)expectedDstSize > dst.Length)
+					throw new InsufficientMemoryException("Buffer size is less than specified decompressed data size");
 			}
+
+			var dstSize = Options.Ddict == IntPtr.Zero
+				? ExternMethods.ZSTD_decompressDCtx(dctx, dst, (size_t)dst.Length, src, (size_t)src.Length)
+				: ExternMethods.ZSTD_decompress_usingDDict(dctx, dst, (size_t)dst.Length, src, (size_t)src.Length, Options.Ddict);
+
+			return (int)dstSize.EnsureZstdSuccess();
 		}
 
 		public readonly DecompressionOptions Options;
