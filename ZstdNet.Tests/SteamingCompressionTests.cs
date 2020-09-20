@@ -70,7 +70,6 @@ namespace ZstdNet.Tests
 		[TestCase(3)]
 		[TestCase(5)]
 		[TestCase(10)]
-		[TestCase(11)]
 		public void StreamingDecompressionSingleRead(int readCount)
 		{
 			var data = new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
@@ -81,12 +80,12 @@ namespace ZstdNet.Tests
 
 			tempStream.Seek(0, SeekOrigin.Begin);
 
-			var buffer = new byte[10];
+			var buffer = new byte[data.Length];
 			using(var decompressionStream = new DecompressionStream(tempStream))
 			{
 				int bytesRead;
 				int totalBytesRead = 0;
-				while((bytesRead = decompressionStream.Read(buffer, totalBytesRead, readCount)) > 0)
+				while((bytesRead = decompressionStream.Read(buffer, totalBytesRead, Math.Min(readCount, buffer.Length - totalBytesRead))) > 0)
 				{
 					Assert.LessOrEqual(bytesRead, readCount);
 					totalBytesRead += bytesRead;

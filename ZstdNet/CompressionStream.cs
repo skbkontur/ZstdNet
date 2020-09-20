@@ -23,6 +23,9 @@ namespace ZstdNet
 
 		public CompressionStream(Stream stream, CompressionOptions options, int bufferSize = 0)
 		{
+			if(bufferSize < 0)
+				throw new ArgumentOutOfRangeException(nameof(bufferSize));
+
 			innerStream = stream;
 
 			cStream = ZSTD_createCStream();
@@ -43,6 +46,13 @@ namespace ZstdNet
 
 		public override void Write(byte[] buffer, int offset, int count)
 		{
+			if(offset < 0)
+				throw new ArgumentOutOfRangeException(nameof(offset));
+			if(count < 0)
+				throw new ArgumentOutOfRangeException(nameof(count));
+			if(offset + count > buffer.Length)
+				throw new ArgumentException("The sum of offset and count is greater than the buffer length");
+
 			if(count == 0)
 				return;
 
