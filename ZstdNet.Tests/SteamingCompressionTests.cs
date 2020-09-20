@@ -183,7 +183,7 @@ namespace ZstdNet.Tests
 
 			var resultBuffer = new byte[dataStream.Length];
 			using(var decompressor = new Decompressor())
-				Assert.AreEqual(dataStream.Length, decompressor.Unwrap(tempStream.ToArray(), resultBuffer, 0));
+				Assert.AreEqual(dataStream.Length, decompressor.Unwrap(tempStream.ToArray(), resultBuffer, 0, false));
 
 			Assert.AreEqual(dataStream.ToArray(), resultBuffer);
 		}

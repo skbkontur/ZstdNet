@@ -5,6 +5,10 @@ namespace ZstdNet
 {
 	public class DecompressionOptions : IDisposable
 	{
+		public DecompressionOptions()
+			: this(null)
+		{}
+
 		public DecompressionOptions(byte[] dict)
 		{
 			Dictionary = dict;
@@ -15,10 +19,7 @@ namespace ZstdNet
 				GC.SuppressFinalize(this); // No unmanaged resources
 		}
 
-		~DecompressionOptions()
-		{
-			Dispose(false);
-		}
+		~DecompressionOptions() => Dispose(false);
 
 		public void Dispose()
 		{
@@ -28,19 +29,16 @@ namespace ZstdNet
 
 		private void Dispose(bool disposing)
 		{
-			if(disposed)
+			if(Ddict == IntPtr.Zero)
 				return;
 
-			if(Ddict != IntPtr.Zero)
-				ExternMethods.ZSTD_freeDDict(Ddict);
+			ExternMethods.ZSTD_freeDDict(Ddict);
 
-			disposed = true;
+			Ddict = IntPtr.Zero;
 		}
-
-		private bool disposed = false;
 
 		public readonly byte[] Dictionary;
 
-		internal readonly IntPtr Ddict;
+		internal IntPtr Ddict;
 	}
 }

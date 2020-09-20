@@ -78,6 +78,11 @@ namespace ZstdNet
 
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
 		public static extern ulong ZSTD_getDecompressedSize(IntPtr src, size_t srcSize);
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern ulong ZSTD_getFrameContentSize(IntPtr src, size_t srcSize);
+
+		public const ulong ZSTD_CONTENTSIZE_UNKNOWN = unchecked(0UL - 1);
+		public const ulong ZSTD_CONTENTSIZE_ERROR = unchecked(0UL - 2);
 
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
 		public static extern int ZSTD_maxCLevel();

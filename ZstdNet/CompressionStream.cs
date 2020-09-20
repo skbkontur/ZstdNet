@@ -14,11 +14,11 @@ namespace ZstdNet
 		private ZSTD_Buffer outputBufferState;
 
 		public CompressionStream(Stream stream)
-			: this(stream, CompressionOptions.DefaultCompressionOptions)
+			: this(stream, CompressionOptions.Default)
 		{}
 
 		public CompressionStream(Stream stream, int bufferSize)
-			: this(stream, CompressionOptions.DefaultCompressionOptions, bufferSize)
+			: this(stream, CompressionOptions.Default, bufferSize)
 		{}
 
 		public CompressionStream(Stream stream, CompressionOptions options, int bufferSize = 0)
@@ -107,11 +107,11 @@ namespace ZstdNet
 				if(!disposing)
 					return;
 
-				while(ZSTD_endStream(cStream, ref outputBufferState).EnsureZstdSuccess() != UIntPtr.Zero)
+				do
 				{
 					if(outputBufferState.IsFullyConsumed)
 						FlushOutputBuffer();
-				}
+				} while(ZSTD_endStream(cStream, ref outputBufferState).EnsureZstdSuccess() != UIntPtr.Zero);
 
 				FlushOutputBuffer();
 			}

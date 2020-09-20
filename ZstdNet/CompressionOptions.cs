@@ -5,6 +5,9 @@ namespace ZstdNet
 {
 	public class CompressionOptions : IDisposable
 	{
+		public CompressionOptions(int compressionLevel)
+			=> CompressionLevel = compressionLevel;
+
 		public CompressionOptions(byte[] dict, int compressionLevel = DefaultCompressionLevel)
 			: this(compressionLevel)
 		{
@@ -16,15 +19,7 @@ namespace ZstdNet
 				GC.SuppressFinalize(this); // No unmanaged resources
 		}
 
-		public CompressionOptions(int compressionLevel)
-		{
-			CompressionLevel = compressionLevel;
-		}
-
-		~CompressionOptions()
-		{
-			Dispose(false);
-		}
+		~CompressionOptions() => Dispose(false);
 
 		public void Dispose()
 		{
@@ -34,29 +29,23 @@ namespace ZstdNet
 
 		private void Dispose(bool disposing)
 		{
-			if(disposed)
+			if(Cdict == IntPtr.Zero)
 				return;
 
-			if(Cdict != IntPtr.Zero)
-				ExternMethods.ZSTD_freeCDict(Cdict);
+			ExternMethods.ZSTD_freeCDict(Cdict);
 
-			disposed = true;
+			Cdict = IntPtr.Zero;
 		}
 
-		private bool disposed = false;
-
-		public static int MaxCompressionLevel
-		{
-			get { return ExternMethods.ZSTD_maxCLevel(); }
-		}
+		public static int MaxCompressionLevel => ExternMethods.ZSTD_maxCLevel();
 
 		public const int DefaultCompressionLevel = 3; // Used by zstd utility by default
 
-		internal static CompressionOptions DefaultCompressionOptions { get; } = new CompressionOptions(DefaultCompressionLevel);
+		public static CompressionOptions Default { get; } = new CompressionOptions(DefaultCompressionLevel);
 
 		public readonly int CompressionLevel;
 		public readonly byte[] Dictionary;
 
-		internal readonly IntPtr Cdict;
+		internal IntPtr Cdict;
 	}
 }
