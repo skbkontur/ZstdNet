@@ -36,12 +36,12 @@ Reference
 
 ### Requirements
 
-*ZstdNet* requires *Zstdlib* >= v1.0.0. Both 32-bit and 64-bit versions are supported.
-The corresponding DLLs (compiled from v1.3.3 using Visual C++) are included in this repository.
+*ZstdNet* requires *libzstd* >= v1.0.0. Both 32-bit and 64-bit versions are supported.
+The corresponding DLLs (cross-compiled using gcc-mingw-w64) are included in this repository.
 
 ### Exceptions
 
-The wrapper throws `ZstdException` in case of malformed data or an error inside *Zstdlib*.
+The wrapper throws `ZstdException` in case of malformed data or an error inside *libzstd*.
 If the given destination buffer is too small, `InsufficientMemoryException` is thrown away.
 
 ### Compressor class
@@ -152,7 +152,7 @@ Allocates buffers for performing decompression. Instances of this class are **no
   the size of the destination buffer will be checked before actual decompression.
 
   Note that if this field is malformed (and is less than actual decompressed data size),
-  *Zstdlib* still doesn't allow a buffer overflow to happen during decompression.
+  *libzstd* still doesn't allow a buffer overflow to happen during decompression.
 
 * `static ulong GetDecompressedSize(byte[] src)`
 
@@ -198,6 +198,6 @@ performance and memory overhead.
 Wrapper Authors
 ---------------
 
-Copyright (c) 2016-2017 [SKB Kontur](https://kontur.ru/eng/about)
+Copyright (c) 2016-present [SKB Kontur](https://kontur.ru/eng/about)
 
 *ZstdNet* is distributed under [BSD 3-Clause License](LICENSE).

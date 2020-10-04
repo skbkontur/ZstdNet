@@ -7,11 +7,11 @@ namespace ZstdNet
 	public class DecompressionStream : Stream
 	{
 		private readonly Stream innerStream;
+		private readonly byte[] inputBuffer;
 
-		private ArraySegmentPtr inputBuffer;
 		private IntPtr dStream;
-
-		private ZSTD_Buffer inputBufferState;
+		private UIntPtr pos;
+		private UIntPtr size;
 
 		public DecompressionStream(Stream stream)
 			: this(stream, null)
@@ -34,15 +34,8 @@ namespace ZstdNet
 			else
 				ZSTD_initDStream_usingDDict(dStream, options.Ddict);
 
-			inputBuffer = CreateInputBuffer(bufferSize);
-			inputBufferState = new ZSTD_Buffer(inputBuffer);
-			inputBufferState.pos = inputBufferState.size;
-		}
-
-		private static ArraySegmentPtr CreateInputBuffer(int bufferSize)
-		{
-			var buffer = new byte[bufferSize > 0 ? bufferSize : (int)ZSTD_DStreamInSize().EnsureZstdSuccess()];
-			return new ArraySegmentPtr(buffer, 0, buffer.Length);
+			inputBuffer = new byte[bufferSize > 0 ? bufferSize : (int)ZSTD_DStreamInSize().EnsureZstdSuccess()];
+			pos = size = (UIntPtr)inputBuffer.Length;
 		}
 
 		public override int Read(byte[] buffer, int offset, int count)
@@ -57,22 +50,28 @@ namespace ZstdNet
 			if(count == 0)
 				return 0;
 
-			using(var outputBufferPtr = new ArraySegmentPtr(buffer, offset, count))
+			using(var inputBufferHandle = new ArrayHandle(inputBuffer, 0))
+			using(var outputBufferHandle = new ArrayHandle(buffer, offset))
 			{
-				var outputBufferState = new ZSTD_Buffer(outputBufferPtr);
-				while(!outputBufferState.IsFullyConsumed && (!inputBufferState.IsFullyConsumed || FillInputBuffer() > 0))
-					ZSTD_decompressStream(dStream, ref outputBufferState, ref inputBufferState).EnsureZstdSuccess();
+				var input = new ZSTD_Buffer(inputBufferHandle, pos, size);
+				var output = new ZSTD_Buffer(outputBufferHandle, UIntPtr.Zero, (UIntPtr)count);
 
-				return (int)outputBufferState.pos;
+				while(!output.IsFullyConsumed && (!input.IsFullyConsumed || FillInputBuffer(ref input) > 0))
+					ZSTD_decompressStream(dStream, ref output, ref input).EnsureZstdSuccess();
+
+				pos = input.pos;
+				size = input.size;
+
+				return (int)output.pos;
 			}
 		}
 
-		private int FillInputBuffer()
+		private int FillInputBuffer(ref ZSTD_Buffer input)
 		{
-			int bytesRead = innerStream.Read(inputBuffer.Array, 0, inputBuffer.Length);
+			int bytesRead = innerStream.Read(inputBuffer, 0, inputBuffer.Length);
 
-			inputBufferState.pos = UIntPtr.Zero;
-			inputBufferState.size = (UIntPtr)bytesRead;
+			input.size = (UIntPtr)bytesRead;
+			input.pos = UIntPtr.Zero;
 
 			return bytesRead;
 		}
@@ -102,8 +101,6 @@ namespace ZstdNet
 				return;
 
 			ZSTD_freeDStream(dStream);
-			inputBuffer.Dispose();
-
 			dStream = IntPtr.Zero;
 		}
 	}

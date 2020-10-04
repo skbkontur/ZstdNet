@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
+using System.Threading;
 using NUnit.Framework;
 
 namespace ZstdNet.Tests
@@ -69,6 +71,7 @@ namespace ZstdNet.Tests
 		[TestCase(2)]
 		[TestCase(3)]
 		[TestCase(5)]
+		[TestCase(9)]
 		[TestCase(10)]
 		public void StreamingDecompressionSingleRead(int readCount)
 		{
@@ -205,6 +208,50 @@ namespace ZstdNet.Tests
 				decompressionStream.CopyTo(resultStream, copyBufferSize);
 
 			Assert.AreEqual(testStream.ToArray(), resultStream.ToArray());
+		}
+
+		[Test, Explicit("stress")]
+		public void RoundTrip_StreamingToStreaming_Stress()
+		{
+			long i = 0;
+			Enumerable.Range(0, 10000)
+				.AsParallel()
+				.WithDegreeOfParallelism(100)
+				.ForAll(_ =>
+				{
+					var buffer = new byte[13];
+					var testStream = DataGenerator.GetSmallStream(DataFill.Random);
+
+					var tempStream = new MemoryStream();
+					using(var compressionStream = new CompressionStream(tempStream, 512))
+					{
+						int bytesRead;
+						int offset = (int)(Interlocked.Read(ref i) % buffer.Length);
+						while((bytesRead = testStream.Read(buffer, offset, buffer.Length - offset)) > 0)
+						{
+							compressionStream.Write(buffer, offset, bytesRead);
+							if(Interlocked.Increment(ref i) % 100 == 0)
+								GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true, true);
+						}
+					}
+
+					tempStream.Seek(0, SeekOrigin.Begin);
+
+					var resultStream = new MemoryStream();
+					using(var decompressionStream = new DecompressionStream(tempStream, 512))
+					{
+						int bytesRead;
+						int offset = (int)(Interlocked.Read(ref i) % buffer.Length);
+						while((bytesRead = decompressionStream.Read(buffer, offset, buffer.Length - offset)) > 0)
+						{
+							resultStream.Write(buffer, offset, bytesRead);
+							if(Interlocked.Increment(ref i) % 100 == 0)
+								GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true, true);
+						}
+					}
+
+					Assert.AreEqual(testStream.ToArray(), resultStream.ToArray());
+				});
 		}
 	}
 }

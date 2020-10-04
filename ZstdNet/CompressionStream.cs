@@ -7,11 +7,10 @@ namespace ZstdNet
 	public class CompressionStream : Stream
 	{
 		private readonly Stream innerStream;
+		private readonly byte[] outputBuffer;
 
-		private ArraySegmentPtr outputBuffer;
 		private IntPtr cStream;
-
-		private ZSTD_Buffer outputBufferState;
+		private UIntPtr pos;
 
 		public CompressionStream(Stream stream)
 			: this(stream, CompressionOptions.Default)
@@ -34,14 +33,7 @@ namespace ZstdNet
 			else
 				ZSTD_initCStream_usingCDict(cStream, options.Cdict).EnsureZstdSuccess();
 
-			outputBuffer = CreateOutputBuffer(bufferSize);
-			outputBufferState = new ZSTD_Buffer(outputBuffer);
-		}
-
-		private static ArraySegmentPtr CreateOutputBuffer(int bufferSize)
-		{
-			var outputArray = new byte[bufferSize > 0 ? bufferSize : (int)ZSTD_CStreamOutSize().EnsureZstdSuccess()];
-			return new ArraySegmentPtr(outputArray, 0, outputArray.Length);
+			outputBuffer = new byte[bufferSize > 0 ? bufferSize : (int)ZSTD_CStreamOutSize().EnsureZstdSuccess()];
 		}
 
 		public override void Write(byte[] buffer, int offset, int count)
@@ -56,26 +48,31 @@ namespace ZstdNet
 			if(count == 0)
 				return;
 
-			using(var inputBuffer = new ArraySegmentPtr(buffer, offset, count))
+			using(var inputHandle = new ArrayHandle(buffer, offset))
+			using(var outputHandle = new ArrayHandle(outputBuffer))
 			{
-				var inputBufferState = new ZSTD_Buffer(inputBuffer);
-				while(!inputBufferState.IsFullyConsumed)
-				{
-					if(outputBufferState.IsFullyConsumed)
-						FlushOutputBuffer();
+				var input = new ZSTD_Buffer(inputHandle, UIntPtr.Zero, (UIntPtr)count);
+				var output = new ZSTD_Buffer(outputHandle, pos, (UIntPtr)outputBuffer.Length);
 
-					ZSTD_compressStream(cStream, ref outputBufferState, ref inputBufferState).EnsureZstdSuccess();
+				while(!input.IsFullyConsumed)
+				{
+					if(output.IsFullyConsumed)
+						FlushOutputBuffer(ref output);
+
+					ZSTD_compressStream2(cStream, ref output, ref input, ZSTD_EndDirective.ZSTD_e_continue).EnsureZstdSuccess();
 				}
+
+				pos = output.pos;
 			}
 		}
 
-		private void FlushOutputBuffer()
+		private void FlushOutputBuffer(ref ZSTD_Buffer output)
 		{
-			if(outputBufferState.pos == UIntPtr.Zero)
+			if(output.pos == UIntPtr.Zero)
 				return;
 
-			innerStream.Write(outputBuffer.Array, 0, (int)outputBufferState.pos);
-			outputBufferState.pos = UIntPtr.Zero;
+			innerStream.Write(outputBuffer, 0, (int)output.pos);
+			output.pos = UIntPtr.Zero;
 		}
 
 		~CompressionStream() => Dispose(false);
@@ -93,13 +90,7 @@ namespace ZstdNet
 
 		public override void Flush()
 		{
-			do
-			{
-				if(outputBufferState.IsFullyConsumed)
-					FlushOutputBuffer();
-			} while(ZSTD_flushStream(cStream, ref outputBufferState).EnsureZstdSuccess() != UIntPtr.Zero);
-
-			FlushOutputBuffer();
+			FlushCompressStream(ZSTD_EndDirective.ZSTD_e_flush);
 			innerStream.Flush();
 		}
 
@@ -117,20 +108,29 @@ namespace ZstdNet
 				if(!disposing)
 					return;
 
-				do
-				{
-					if(outputBufferState.IsFullyConsumed)
-						FlushOutputBuffer();
-				} while(ZSTD_endStream(cStream, ref outputBufferState).EnsureZstdSuccess() != UIntPtr.Zero);
-
-				FlushOutputBuffer();
+				FlushCompressStream(ZSTD_EndDirective.ZSTD_e_end);
 			}
 			finally
 			{
 				ZSTD_freeCStream(cStream);
-				outputBuffer.Dispose();
-
 				cStream = IntPtr.Zero;
+			}
+		}
+
+		private void FlushCompressStream(ZSTD_EndDirective directive)
+		{
+			var input = new ZSTD_Buffer(IntPtr.Zero, UIntPtr.Zero, UIntPtr.Zero);
+			using(var outputHandle = new ArrayHandle(outputBuffer))
+			{
+				var output = new ZSTD_Buffer(outputHandle, pos, (UIntPtr)outputBuffer.Length);
+				do
+				{
+					if(output.IsFullyConsumed)
+						FlushOutputBuffer(ref output);
+				} while(ZSTD_compressStream2(cStream, ref output, ref input, directive).EnsureZstdSuccess() != UIntPtr.Zero);
+
+				FlushOutputBuffer(ref output);
+				pos = output.pos;
 			}
 		}
 	}

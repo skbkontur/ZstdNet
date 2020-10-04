@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using NUnit.Framework;
 
 namespace ZstdNet.Tests
@@ -185,6 +186,34 @@ namespace ZstdNet.Tests
 		}
 
 		[Test]
+		public void CompressAndDecompress_workCorrectly_spans([Values(false, true)] bool useDictionary)
+		{
+			var buffer = GenerateSample();
+
+			var data = new ReadOnlySpan<byte>(buffer, 1, buffer.Length - 1);
+			var dict = useDictionary ? BuildDictionary() : null;
+
+			Span<byte> compressed = stackalloc byte[Compressor.GetCompressBound(data.Length)];
+			using(var options = new CompressionOptions(dict))
+			using(var compressor = new Compressor(options))
+			{
+				var size = compressor.Wrap(data, compressed);
+				compressed = compressed.Slice(0, size);
+			}
+
+			Span<byte> decompressed = stackalloc byte[data.Length + 1];
+			using(var options = new DecompressionOptions(dict))
+			using(var decompressor = new Decompressor(options))
+			{
+				var size = decompressor.Unwrap(compressed, decompressed);
+				Assert.AreEqual(data.Length, size);
+				decompressed = decompressed.Slice(0, size);
+			}
+
+			CollectionAssert.AreEqual(data.ToArray(), decompressed.ToArray());
+		}
+
+		[Test]
 		public void Decompress_canRead_fromArraySegment([Values(false, true)] bool useDictionary)
 		{
 			var data = GenerateSample();
@@ -364,16 +393,38 @@ namespace ZstdNet.Tests
 					});
 		}
 
+		[Test, Explicit("stress")]
+		public void CompressAndDecompress_workCorrectly_stress([Values(false, true)] bool useDictionary)
+		{
+			long i = 0L;
+			var data = GenerateBuffer(65536);
+			var dict = useDictionary ? BuildDictionary() : null;
+			using(var compressionOptions = new CompressionOptions(dict))
+			using(var decompressionOptions = new DecompressionOptions(dict))
+				Enumerable.Range(0, 10000)
+					.AsParallel().WithDegreeOfParallelism(100)
+					.ForAll(_ =>
+					{
+						using(var compressor = new Compressor(compressionOptions))
+						using(var decompressor = new Decompressor(decompressionOptions))
+						{
+							var decompressed = decompressor.Unwrap(compressor.Wrap(data));
+							if(Interlocked.Increment(ref i) % 100 == 0)
+								GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true, true);
+							CollectionAssert.AreEqual(data, decompressed);
+						}
+					});
+		}
+
 		private static byte[] BuildDictionary()
 		{
-			return DictBuilder.TrainFromBuffer(Enumerable.Range(0, 5).Select(_ => GenerateSample()).ToArray(), 1024);
+			return DictBuilder.TrainFromBuffer(Enumerable.Range(0, 8).Select(_ => GenerateSample()).ToArray(), 1024);
 		}
 
 		private static byte[] GenerateSample()
 		{
 			return Enumerable.Range(0, 10)
-				.SelectMany(_ => Encoding.ASCII.GetBytes(string.Format("['a': 'constant_field', 'b': '{0}', 'c': {1}, 'd': '{2} constant field']",
-					Random.Next(), Random.Next(), Random.Next(1) == 1 ? "almost" : "sometimes")))
+				.SelectMany(_ => Encoding.ASCII.GetBytes($"['a': 'constant_field', 'b': '{Random.Next()}', 'c': {Random.Next()}, 'd': '{(Random.Next(1) == 1 ? "almost" : "sometimes")} constant field']"))
 				.ToArray();
 		}
 

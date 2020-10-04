@@ -51,7 +51,7 @@ namespace ZstdNet
 		public static extern IntPtr ZSTD_createCCtx();
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
 		public static extern size_t ZSTD_freeCCtx(IntPtr cctx);
-		
+
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
 		public static extern IntPtr ZSTD_createDCtx();
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
@@ -145,6 +145,16 @@ namespace ZstdNet
 		public static extern size_t ZSTD_DStreamOutSize();
 
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_compressStream2(IntPtr zcs, ref ZSTD_Buffer output, ref ZSTD_Buffer input, ZSTD_EndDirective endOp);
+
+		public enum ZSTD_EndDirective
+		{
+			ZSTD_e_continue = 0,
+			ZSTD_e_flush = 1,
+			ZSTD_e_end = 2
+		}
+
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
 		public static extern size_t ZSTD_initDStream_usingDDict(IntPtr zds, IntPtr dict);
 
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
@@ -153,11 +163,11 @@ namespace ZstdNet
 		[StructLayout(LayoutKind.Sequential)]
 		internal struct ZSTD_Buffer
 		{
-			public ZSTD_Buffer(ArraySegmentPtr segmentPtr)
+			public ZSTD_Buffer(IntPtr buffer, size_t pos, size_t size)
 			{
-				buffer = segmentPtr;
-				size = (size_t)segmentPtr.Length;
-				pos = size_t.Zero;
+				this.buffer = buffer;
+				this.size = size;
+				this.pos = pos;
 			}
 
 			public IntPtr buffer;
