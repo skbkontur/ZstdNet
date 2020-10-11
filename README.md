@@ -6,23 +6,22 @@ ZstdNet
 **ZstdNet** is a wrapper of **Zstd** native library for .NET languages. It has the following features:
 
 * Compression and decompression of byte arrays
+* Streaming compression and decompression
 * Generation of Dictionaries from a collection of samples
-
-Streaming APIs are not implemented.
 
 Take a look on a library reference or unit tests to explore its behavior in different situations.
 
 Zstd
 ----
 
-**Zstd**, short for Zstandard, is a new lossless compression algorithm, which
+**Zstd**, short for Zstandard, is a fast lossless compression algorithm, which
 provides both good compression ratio _and_ speed for your standard compression
 needs. "Standard" translates into everyday situations which neither look for
 highest possible ratio (which LZMA and ZPAQ cover) nor extreme speeds (which
 LZ4 covers). Zstandard is licensed under [BSD 3-Clause License](Native/LICENSE).
 
-**Zstd** is developed by Yann Collet and the source is available at:
-https://github.com/Cyan4973/zstd
+**Zstd** is initially developed by Yann Collet and the source is available at:
+https://github.com/facebook/zstd
 
 The motivation to develop of the algorithm, ways of use and its properties are
 explained in the blog that introduces the library:
@@ -37,7 +36,9 @@ Reference
 ### Requirements
 
 *ZstdNet* requires *libzstd* >= v1.0.0. Both 32-bit and 64-bit versions are supported.
-The corresponding DLLs (cross-compiled using gcc-mingw-w64) are included in this repository.
+The corresponding DLLs are included in this repository cross-compiled using
+`(i686|x86_64)-w64-mingw32-gcc -DZSTD_MULTITHREAD -DZSTD_LEGACY_SUPPORT=0 -pthread -s`.
+Note that `ZSTD_LEGACY_SUPPORT=0` means "do not support legacy formats" to minimize the binary size.
 
 ### Exceptions
 
@@ -46,13 +47,15 @@ If the given destination buffer is too small, `InsufficientMemoryException` is t
 
 ### Compressor class
 
-Allocates buffers for compression. Instances of this class are **not** thread-safe.
+Block compression implementation. Instances of this class are **not** thread-safe.
 
-* `new Compressor()`
+* Constructor allow specifying compression options. Otherwise, default values will be used for `CompressionOptions`.
 
-  `new Compressor(CompressionOptions options)`
+  ```c#
+  Compressor();
+  Compressor(CompressionOptions options);
+  ```
 
-  Constructors allow specifying compression options. Otherwise, default values will be used for `CompressionOptions`.
   Options will be exposed in `Options` read-only field.
 
   Note that `Compressor` class implements `IDisposable`.
@@ -60,25 +63,57 @@ Allocates buffers for compression. Instances of this class are **not** thread-sa
   it's recommended to call `Dispose` to avoid loading on the finalizer thread. For example:
 
   ```c#
-  using (var compressor = new Compressor()) {
-	  compressedData = compressor.Wrap(sourceData);
-  }
+  using var compressor = new Compressor();
+  var compressedData = compressor.Wrap(sourceData);
   ```
 
-* `byte[] Wrap(byte[] src)`
+* `Wrap` compress data and save it in a new or an existing buffer (in such case a length of saved data will be returned).
 
-  `byte[] Wrap(ArraySegment<byte> src)`
+  ```c#
+  byte[] Wrap(byte[] src);
+  byte[] Wrap(ArraySegment<byte> src);
+  byte[] Wrap(ReadOnlySpan<byte> src);
+  int Wrap(byte[] src, byte[] dst, int offset);
+  int Wrap(ArraySegment<byte> src, byte[] dst, int offset);
+  int Wrap(ReadOnlySpan<byte> src, byte[] dst, int offset);
+  int Wrap(ReadOnlySpan<byte> src, Span<byte> dst);
+  ```
 
-  `int Wrap(byte[] src, byte[] dst, int offset)`
+* `GetCompressBound` returns required destination buffer size for source data of size `size`.
 
-  `int Wrap(ArraySegment<byte> src, byte[] dst, int offset)`
+  ```c#
+  static int GetCompressBound(int size)
+  ```
 
-  These methods compress data and save it in a new or
-  an existing buffer (in such case a length of saved data will be returned).
+### CompressionStream class
 
-* `static int GetCompressBound(int size)`
+Implementation of streaming compression. The stream is write-only.
 
-  Returns required destination buffer size for source data of size `size`.
+* Constructor
+
+  ```c#
+  CompressionStream(Stream stream);
+  CompressionStream(Stream stream, int bufferSize);
+  CompressionStream(Stream stream, CompressionOptions options, int bufferSize = 0);
+  ```
+
+  Options:
+    - `Stream stream` &mdash; output stream for writing compressed data.
+    - `CompressionOptions options`
+      Default is `CompressionOptions.Default` with default compression level.
+    - `int bufferSize` &mdash; buffer size used for compression buffer.
+      Default is the result of calling `ZSTD_CStreamOutSize` which guarantees to successfully flush at least one complete compressed block (currently ~128KB).
+
+  The buffer for compression is allocated using `ArrayPool<byte>.Shared.Rent()`.
+
+  Note that `CompressionStream` class implements `IDisposable` and `IAsyncDisposable`.
+  If you use a lot of instances of this class,
+  it's recommended to call `Dispose` or `DisposeAsync` to avoid loading on the finalizer thread. For example:
+
+  ```c#
+  await using var compressionStream = new CompressionStream(outputStream, zstdBufferSize);
+  await inputStream.CopyToAsync(compressionStream, copyBufferSize);
+  ```
 
 ### CompressionOptions class
 
@@ -87,17 +122,20 @@ from a compression dictionary, if present.
 Instances of this class **are** thread-safe. They can be shared across threads to avoid
 performance and memory overhead.
 
-* `new CompressionOptions(byte[] dict, int compressionLevel = DefaultCompressionLevel)`
+* Constructor
 
-  `new CompressionOptions(int compressionLevel)`
+  ```c#
+  CompressionOptions(int compressionLevel);
+  CompressionOptions(byte[] dict, int compressionLevel = DefaultCompressionLevel);
+  ```
 
   Options:
     - `byte[] dict` &mdash; compression dictionary.
       It can be read from a file or generated with `DictBuilder` class.
-	  Default is `null` (no dictionary).
+      Default is `null` (no dictionary).
     - `int compressionLevel` &mdash; compression level.
-  	  Should be in range from 1 to `CompressionOptions.MaxCompressionLevel` (currently 22).
-  	  Default is `CompressionOptions.DefaultCompressionLevel` (currently 3).
+      Should be in range from 1 to `CompressionOptions.MaxCompressionLevel` (currently 22).
+      Default is `CompressionOptions.DefaultCompressionLevel` (currently 3).
 
   Specified options will be exposed in read-only fields.
 
@@ -106,21 +144,22 @@ performance and memory overhead.
   it's recommended to call `Dispose` to avoid loading on the finalizer thread. For example:
 
   ```c#
-  using (var options = new CompressionOptions(dict, compressionLevel: 5))
-  using (var compressor = new Compressor(options)) {
-  	  compressedData = compressor.Wrap(sourceData);
-  }
+  using var options = new CompressionOptions(dict, compressionLevel: 5);
+  using var compressor = new Compressor(options);
+  var compressedData = compressor.Wrap(sourceData);
   ```
 
 ### Decompressor class
 
-Allocates buffers for performing decompression. Instances of this class are **not** thread-safe.
+Block decompression implementation. Instances of this class are **not** thread-safe.
 
-* `new Decompressor()`
+* Constructor allow specifying decompression options. Otherwise, default values for `DecompressionOptions` will be used.
 
-  `new Decompressor(DecompressionOptions options)`
+  ```c#
+  new Decompressor();
+  new Decompressor(DecompressionOptions options);
+  ```
 
-  Constructors allow specifying decompression options. Otherwise, default values for `DecompressionOptions` will be used.
   Options will be exposed in `Options` read-only field.
 
   Note that `Decompressor` class implements `IDisposable`.
@@ -128,21 +167,21 @@ Allocates buffers for performing decompression. Instances of this class are **no
   it's recommended to call `Dispose` to avoid loading on the finalizer thread. For example:
 
   ```c#
-  using (var decompressor = new Decompressor()) {
-	  decompressedData = decompressor.Unwrap(compressedData);
-  }
+  using var decompressor = new Decompressor();
+  var decompressedData = decompressor.Unwrap(compressedData);
   ```
 
-* `byte[] Unwrap(byte[] src, size_t maxDecompressedSize = size_t.MaxValue)`
+* `Unwrap` decompress data and save it in a new or an existing buffer (in such case a length of saved data will be returned).
 
-  `byte[] Unwrap(ArraySegment<byte> src, size_t maxDecompressedSize = size_t.MaxValue)`
-
-  `int Unwrap(byte[] src, byte[] dst, int offset)`
-
-  `int Unwrap(ArraySegment<byte> src, byte[] dst, int offset, bool bufferSizePrecheck = true)`
-
-  These methods decompress data and save it in a new or
-  an existing buffer (in such case a length of saved data will be returned).
+  ```c#
+  byte[] Unwrap(byte[] src, int maxDecompressedSize = int.MaxValue);
+  byte[] Unwrap(ArraySegment<byte> src, int maxDecompressedSize = int.MaxValue);
+  byte[] Unwrap(ReadOnlySpan<byte> src, int maxDecompressedSize = int.MaxValue);
+  int Unwrap(byte[] src, byte[] dst, int offset, bool bufferSizePrecheck = true);
+  int Unwrap(ArraySegment<byte> src, byte[] dst, int offset, bool bufferSizePrecheck = true);
+  int Unwrap(ReadOnlySpan<byte> src, byte[] dst, int offset, bool bufferSizePrecheck = true);
+  int Unwrap(ReadOnlySpan<byte> src, Span<byte> dst, bool bufferSizePrecheck = true);
+  ```
 
   Data can be saved to a new buffer only if a field with decompressed data size
   is present in compressed data. You can limit size of the new buffer with
@@ -154,9 +193,43 @@ Allocates buffers for performing decompression. Instances of this class are **no
   Note that if this field is malformed (and is less than actual decompressed data size),
   *libzstd* still doesn't allow a buffer overflow to happen during decompression.
 
-* `static ulong GetDecompressedSize(byte[] src)`
+* `GetDecompressedSize` reads a field with decompressed data size stored in compressed data.
 
-  Reads a field with decompressed data size in compressed data.
+  ```c#
+  static ulong GetDecompressedSize(byte[] src);
+  static ulong GetDecompressedSize(ArraySegment<byte> src);
+  static ulong GetDecompressedSize(ReadOnlySpan<byte> src);
+  ```
+
+### DecompressionStream class
+
+Implementation of streaming decompression. The stream is read-only.
+
+* Constructor
+
+  ```c#
+  DecompressionStream(Stream stream);
+  DecompressionStream(Stream stream, int bufferSize);
+  DecompressionStream(Stream stream, DecompressionOptions options, int bufferSize = 0);
+  ```
+
+  Options:
+    - `Stream stream` &mdash; input stream for reading raw data.
+    - `DecompressionOptions options`
+      Default is `null` (no dictionary).
+    - `int bufferSize` &mdash; buffer size used for decompression buffer.
+      Default is the result of calling `ZSTD_DStreamInSize` &mdash; recommended size for input buffer (currently ~128KB).
+
+  The buffer for decompression is allocated using `ArrayPool<byte>.Shared.Rent()`.
+
+  Note that `DecompressionStream` class implements `IDisposable` and `IAsyncDisposable`.
+  If you use a lot of instances of this class,
+  it's recommended to call `Dispose` or `DisposeAsync` to avoid loading on the finalizer thread. For example:
+
+  ```c#
+  await using var decompressionStream = new DecompressionStream(inputStream, zstdBufferSize);
+  await decompressionStream.CopyToAsync(outputStream, copyBufferSize);
+  ```
 
 ### DecompressionOptions class
 
@@ -165,12 +238,17 @@ from a compression dictionary, if present.
 Instances of this class **are** thread-safe. They can be shared across threads to avoid
 performance and memory overhead.
 
-* `new DecompressionOptions(byte[] dict)`
+* Constructor
+
+  ```c#
+  DecompressionOptions();
+  DecompressionOptions(byte[] dict);
+  ```
 
   Options:
     - `byte[] dict` &mdash; compression dictionary.
       It can be read from a file or generated with `DictBuilder` class.
-	    Default is `null` (no dictionary).
+      Default is `null` (no dictionary).
 
   Specified options will be exposed in read-only fields.
 
@@ -179,21 +257,22 @@ performance and memory overhead.
   it's recommended to call `Dispose` to avoid loading on the finalizer thread. For example:
 
   ```c#
-  using (var options = new DecompressionOptions(dict))
-  using (var decompressor = new Decompressor(options)) {
-  	  decompressedData = decompressor.Unwrap(compressedData);
-  }
+  using var options = new DecompressionOptions(dict);
+  using var decompressor = new Decompressor(options);
+  var decompressedData = decompressor.Unwrap(compressedData);
   ```
 
 ### DictBuilder static class
 
-* `static byte[] TrainFromBuffer(ICollection<byte[]> samples, int dictCapacity = DefaultDictCapacity)`
+* `TrainFromBuffer` generates a compression dictionary from a collection of samples.
 
-  Generates a compression dictionary from a collection of samples.
+  ```c#
+  static byte[] TrainFromBuffer(ICollection<byte[]> samples, int dictCapacity = DefaultDictCapacity);
+  ```
 
   Options:
     - `int dictCapacity` &mdash; maximal dictionary size in bytes.
-	  Default is `DictBuilder.DefaultDictCapacity`, currently 110 KiB (the default in zstd utility).
+      Default is `DictBuilder.DefaultDictCapacity`, currently 110 KiB (the default in zstd utility).
 
 Wrapper Authors
 ---------------
