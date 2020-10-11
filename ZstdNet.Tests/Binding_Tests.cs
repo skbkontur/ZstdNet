@@ -9,13 +9,25 @@ namespace ZstdNet.Tests
 	[TestFixture]
 	public class Binding_Tests
 	{
+		public enum CompressionLevel
+		{
+			Default = 0,
+			Min,
+			Max
+		}
+
 		[Test]
-		public void CompressAndDecompress_workCorrectly([Values(false, true)] bool useDictionary, [Values(false, true)] bool bestCompression)
+		public void CompressAndDecompress_workCorrectly([Values(false, true)] bool useDictionary, [Values(CompressionLevel.Min, CompressionLevel.Default, CompressionLevel.Max)] CompressionLevel level)
 		{
 			var data = GenerateSample();
 
 			var dict = useDictionary ? BuildDictionary() : null;
-			var compressionLevel = bestCompression ? CompressionOptions.MaxCompressionLevel : CompressionOptions.DefaultCompressionLevel;
+			var compressionLevel = level switch
+			{
+				CompressionLevel.Min => CompressionOptions.MinCompressionLevel,
+				CompressionLevel.Max => CompressionOptions.MaxCompressionLevel,
+				_ => CompressionOptions.DefaultCompressionLevel
+			};
 
 			byte[] compressed;
 			using(var options = new CompressionOptions(dict, compressionLevel))

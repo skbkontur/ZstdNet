@@ -6,7 +6,12 @@ namespace ZstdNet
 	public class CompressionOptions : IDisposable
 	{
 		public CompressionOptions(int compressionLevel)
-			=> CompressionLevel = compressionLevel;
+		{
+			if(compressionLevel < MinCompressionLevel || compressionLevel > MaxCompressionLevel)
+				throw new ArgumentOutOfRangeException(nameof(compressionLevel));
+
+			CompressionLevel = compressionLevel;
+		}
 
 		public CompressionOptions(byte[] dict, int compressionLevel = DefaultCompressionLevel)
 			: this(compressionLevel)
@@ -37,6 +42,7 @@ namespace ZstdNet
 			Cdict = IntPtr.Zero;
 		}
 
+		public static int MinCompressionLevel => ExternMethods.ZSTD_minCLevel();
 		public static int MaxCompressionLevel => ExternMethods.ZSTD_maxCLevel();
 
 		public const int DefaultCompressionLevel = 3; // Used by zstd utility by default
