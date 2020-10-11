@@ -268,7 +268,9 @@ namespace ZstdNet
 			finally
 			{
 				ZSTD_freeCStream(cStream);
-				ArrayPool<byte>.Shared.Return(outputBuffer);
+
+				if(outputBuffer != null)
+					ArrayPool<byte>.Shared.Return(outputBuffer);
 
 				cStream = IntPtr.Zero;
 			}
@@ -290,7 +292,9 @@ namespace ZstdNet
 			finally
 			{
 				ZSTD_freeCStream(cStream);
-				ArrayPool<byte>.Shared.Return(outputBuffer);
+
+				if(outputBuffer != null)
+					ArrayPool<byte>.Shared.Return(outputBuffer);
 
 				cStream = IntPtr.Zero;
 			}

@@ -193,7 +193,9 @@ namespace ZstdNet
 				return;
 
 			ZSTD_freeDStream(dStream);
-			ArrayPool<byte>.Shared.Return(inputBuffer);
+
+			if(inputBuffer != null)
+				ArrayPool<byte>.Shared.Return(inputBuffer);
 
 			dStream = IntPtr.Zero;
 		}
