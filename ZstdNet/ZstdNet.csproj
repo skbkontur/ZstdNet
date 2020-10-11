@@ -13,6 +13,7 @@
 		<PackageTags>zstd zstandard compression</PackageTags>
 		<LangVersion>7.2</LangVersion>
 		<Platforms>AnyCPU;x64;x86</Platforms>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 	<ItemGroup>
 		<None Include="build\x64\libzstd.dll">

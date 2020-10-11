@@ -1,5 +1,9 @@
 ﻿using System;
+using System.Buffers;
 using System.IO;
+using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 using static ZstdNet.ExternMethods;
 
 namespace ZstdNet
@@ -8,6 +12,10 @@ namespace ZstdNet
 	{
 		private readonly Stream innerStream;
 		private readonly byte[] inputBuffer;
+		private readonly int bufferSize;
+#if !(NET45 || NETSTANDARD2_0)
+		private readonly Memory<byte> inputMemory;
+#endif
 
 		private IntPtr dStream;
 		private UIntPtr pos;
@@ -23,52 +31,136 @@ namespace ZstdNet
 
 		public DecompressionStream(Stream stream, DecompressionOptions options, int bufferSize = 0)
 		{
+			if(stream == null)
+				throw new ArgumentNullException(nameof(stream));
+			if(!stream.CanRead)
+				throw new ArgumentException("Stream is not readable", nameof(stream));
 			if(bufferSize < 0)
 				throw new ArgumentOutOfRangeException(nameof(bufferSize));
 
 			innerStream = stream;
 
-			dStream = ZSTD_createDStream();
+			dStream = ZSTD_createDStream().EnsureZstdSuccess();
 			if(options == null || options.Ddict == IntPtr.Zero)
-				ZSTD_initDStream(dStream);
+				ZSTD_initDStream(dStream).EnsureZstdSuccess();
 			else
-				ZSTD_initDStream_usingDDict(dStream, options.Ddict);
+				ZSTD_initDStream_usingDDict(dStream, options.Ddict).EnsureZstdSuccess();
 
-			inputBuffer = new byte[bufferSize > 0 ? bufferSize : (int)ZSTD_DStreamInSize().EnsureZstdSuccess()];
-			pos = size = (UIntPtr)inputBuffer.Length;
+			this.bufferSize = bufferSize > 0 ? bufferSize : (int)ZSTD_DStreamInSize().EnsureZstdSuccess();
+			inputBuffer = ArrayPool<byte>.Shared.Rent(this.bufferSize);
+#if !(NET45 || NETSTANDARD2_0)
+			inputMemory = new Memory<byte>(inputBuffer, 0, this.bufferSize);
+#endif
+			pos = size = (UIntPtr)this.bufferSize;
 		}
+
+#if !(NET45 || NETSTANDARD2_0)
+		public override int Read(Span<byte> buffer)
+		{
+			EnsureNotDisposed();
+
+			return ReadInternal(buffer);
+		}
+
+		public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+		{
+			EnsureNotDisposed();
+
+			return ReadInternalAsync(buffer, cancellationToken);
+		}
+#endif
 
 		public override int Read(byte[] buffer, int offset, int count)
 		{
-			if(offset < 0)
-				throw new ArgumentOutOfRangeException(nameof(offset));
-			if(count < 0)
-				throw new ArgumentOutOfRangeException(nameof(count));
-			if(offset + count > buffer.Length)
-				throw new ArgumentException("The sum of offset and count is greater than the buffer length");
+			EnsureParamsValid(buffer, offset, count);
+			EnsureNotDisposed();
 
-			if(count == 0)
-				return 0;
+			return ReadInternal(new Span<byte>(buffer, offset, count));
+		}
 
-			using(var inputBufferHandle = new ArrayHandle(inputBuffer, 0))
-			using(var outputBufferHandle = new ArrayHandle(buffer, offset))
+		public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+		{
+			EnsureParamsValid(buffer, offset, count);
+			EnsureNotDisposed();
+
+#if !(NET45 || NETSTANDARD2_0)
+			return ReadInternalAsync(new Memory<byte>(buffer, offset, count), cancellationToken).AsTask();
+#else
+			return ReadInternalAsync(new Memory<byte>(buffer, offset, count), cancellationToken);
+#endif
+		}
+
+		private int ReadInternal(Span<byte> buffer)
+		{
+			var input = new ZSTD_Buffer(pos, size);
+			var output = new ZSTD_Buffer(UIntPtr.Zero, (UIntPtr)buffer.Length);
+
+			var inputSpan = new Span<byte>(inputBuffer, 0, bufferSize);
+
+			while(!output.IsFullyConsumed && (!input.IsFullyConsumed || FillInputBuffer(inputSpan, ref input) > 0))
+				Decompress(buffer, ref output, ref input);
+
+			pos = input.pos;
+			size = input.size;
+
+			return (int)output.pos;
+		}
+
+		private async
+#if !(NET45 || NETSTANDARD2_0)
+			ValueTask<int>
+#else
+			Task<int>
+#endif
+			ReadInternalAsync(Memory<byte> buffer, CancellationToken cancellationToken)
+		{
+			var input = new ZSTD_Buffer(pos, size);
+			var output = new ZSTD_Buffer(UIntPtr.Zero, (UIntPtr)buffer.Length);
+
+			while(!output.IsFullyConsumed)
 			{
-				var input = new ZSTD_Buffer(inputBufferHandle, pos, size);
-				var output = new ZSTD_Buffer(outputBufferHandle, UIntPtr.Zero, (UIntPtr)count);
+				if(input.IsFullyConsumed)
+				{
+					int bytesRead;
+#if !(NET45 || NETSTANDARD2_0)
+					if((bytesRead = await innerStream.ReadAsync(inputMemory, cancellationToken).ConfigureAwait(false)) == 0)
+#else
+					if((bytesRead = await innerStream.ReadAsync(inputBuffer, 0, bufferSize, cancellationToken).ConfigureAwait(false)) == 0)
+#endif
+						break;
 
-				while(!output.IsFullyConsumed && (!input.IsFullyConsumed || FillInputBuffer(ref input) > 0))
-					ZSTD_decompressStream(dStream, ref output, ref input).EnsureZstdSuccess();
+					input.size = (UIntPtr)bytesRead;
+					input.pos = UIntPtr.Zero;
+				}
 
-				pos = input.pos;
-				size = input.size;
+				Decompress(buffer.Span, ref output, ref input);
+			}
 
-				return (int)output.pos;
+			pos = input.pos;
+			size = input.size;
+
+			return (int)output.pos;
+		}
+
+		private unsafe void Decompress(Span<byte> buffer, ref ZSTD_Buffer output, ref ZSTD_Buffer input)
+		{
+			fixed(void* inputBufferHandle = &inputBuffer[0])
+			fixed(void* outputBufferHandle = &MemoryMarshal.GetReference(buffer))
+			{
+				input.buffer = new IntPtr(inputBufferHandle);
+				output.buffer = new IntPtr(outputBufferHandle);
+
+				ZSTD_decompressStream(dStream, ref output, ref input).EnsureZstdSuccess();
 			}
 		}
 
-		private int FillInputBuffer(ref ZSTD_Buffer input)
+		private int FillInputBuffer(Span<byte> inputSpan, ref ZSTD_Buffer input)
 		{
-			int bytesRead = innerStream.Read(inputBuffer, 0, inputBuffer.Length);
+#if !(NET45 || NETSTANDARD2_0)
+			int bytesRead = innerStream.Read(inputSpan);
+#else
+			int bytesRead = innerStream.Read(inputBuffer, 0, inputSpan.Length);
+#endif
 
 			input.size = (UIntPtr)bytesRead;
 			input.pos = UIntPtr.Zero;
@@ -89,7 +181,7 @@ namespace ZstdNet
 			set => throw new NotSupportedException();
 		}
 
-		public override void Flush() {}
+		public override void Flush() => throw new NotSupportedException();
 
 		public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
 		public override void SetLength(long value) => throw new NotSupportedException();
@@ -101,7 +193,27 @@ namespace ZstdNet
 				return;
 
 			ZSTD_freeDStream(dStream);
+			ArrayPool<byte>.Shared.Return(inputBuffer);
+
 			dStream = IntPtr.Zero;
+		}
+
+		private void EnsureParamsValid(byte[] buffer, int offset, int count)
+		{
+			if(buffer == null)
+				throw new ArgumentNullException(nameof(buffer));
+			if(offset < 0)
+				throw new ArgumentOutOfRangeException(nameof(offset));
+			if(count < 0)
+				throw new ArgumentOutOfRangeException(nameof(count));
+			if(count > buffer.Length - offset)
+				throw new ArgumentException("The sum of offset and count is greater than the buffer length");
+		}
+
+		private void EnsureNotDisposed()
+		{
+			if(dStream == IntPtr.Zero)
+				throw new ObjectDisposedException(nameof(DecompressionStream));
 		}
 	}
 }

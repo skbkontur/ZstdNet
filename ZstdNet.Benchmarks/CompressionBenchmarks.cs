@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 
 namespace ZstdNet.Benchmarks
@@ -7,18 +8,20 @@ namespace ZstdNet.Benchmarks
 	[MemoryDiagnoser]
 	public class CompressionOverheadBenchmarks
 	{
-		[Params(1024)] public static int DataSize;
+		[Params(1, 1024, 128 * 1024 * 1024)]
+		public int DataSize { get; set; }
 
-		private readonly byte[] Data;
-		private readonly byte[] CompressedData;
-		private readonly byte[] CompressedStreamData;
+		private byte[] Data;
+		private byte[] CompressedData;
+		private byte[] CompressedStreamData;
 
-		private readonly byte[] Buffer;
+		private byte[] Buffer;
 
 		private readonly Compressor Compressor = new Compressor(CompressionOptions.Default);
 		private readonly Decompressor Decompressor = new Decompressor();
 
-		public CompressionOverheadBenchmarks()
+		[GlobalSetup]
+		public void GlobalSetup()
 		{
 			var r = new Random(0);
 
@@ -47,10 +50,32 @@ namespace ZstdNet.Benchmarks
 
 		[Benchmark]
 		[Arguments(7, 13)]
+		public async Task CompressStreamAsync(int zstdBufferSize, int copyBufferSize)
+		{
+#if !NET48
+			await
+#endif
+			using var compressionStream = new CompressionStream(Stream.Null, CompressionOptions.Default, zstdBufferSize);
+			await new MemoryStream(Data).CopyToAsync(compressionStream, copyBufferSize);
+		}
+
+		[Benchmark]
+		[Arguments(7, 13)]
 		public void DecompressStream(int zstdBufferSize, int copyBufferSize)
 		{
 			using var decompressionStream = new DecompressionStream(new MemoryStream(CompressedStreamData), zstdBufferSize);
 			decompressionStream.CopyTo(Stream.Null, copyBufferSize);
+		}
+
+		[Benchmark]
+		[Arguments(7, 13)]
+		public async Task DecompressStreamAsync(int zstdBufferSize, int copyBufferSize)
+		{
+#if !NET48
+			await
+#endif
+			using var decompressionStream = new DecompressionStream(new MemoryStream(CompressedStreamData), zstdBufferSize);
+			await decompressionStream.CopyToAsync(Stream.Null, copyBufferSize);
 		}
 	}
 }

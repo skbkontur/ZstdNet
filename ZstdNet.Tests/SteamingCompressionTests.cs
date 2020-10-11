@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using NUnit.Framework;
 
 namespace ZstdNet.Tests
@@ -44,12 +45,53 @@ namespace ZstdNet.Tests
 	[TestFixture]
 	public class SteamingTests
 	{
+		[Test]
+		public void StreamingCompressionZeroAndOneByte()
+		{
+			var data = new byte[] {0, 0, 0, 1, 2, 3, 4, 0, 0, 0};
+
+			var tempStream = new MemoryStream();
+			using(var compressionStream = new CompressionStream(tempStream))
+			{
+				compressionStream.Write(data, 0, 0);
+				compressionStream.Write(ReadOnlySpan<byte>.Empty);
+				compressionStream.WriteAsync(data, 0, 0).GetAwaiter().GetResult();
+				compressionStream.WriteAsync(ReadOnlyMemory<byte>.Empty).GetAwaiter().GetResult();
+
+				compressionStream.Write(data, 3, 1);
+				compressionStream.Write(new ReadOnlySpan<byte>(data, 4, 1));
+				compressionStream.Flush();
+				compressionStream.WriteAsync(data, 5, 1).GetAwaiter().GetResult();
+				compressionStream.WriteAsync(new ReadOnlyMemory<byte>(data, 6, 1)).GetAwaiter().GetResult();
+				compressionStream.FlushAsync().GetAwaiter().GetResult();
+			}
+
+			tempStream.Seek(0, SeekOrigin.Begin);
+
+			var result = new byte[data.Length];
+			using(var decompressionStream = new DecompressionStream(tempStream))
+			{
+				Assert.AreEqual(0, decompressionStream.Read(result, 0, 0));
+				Assert.AreEqual(0, decompressionStream.Read(Span<byte>.Empty));
+				Assert.AreEqual(0, decompressionStream.ReadAsync(result, 0, 0).GetAwaiter().GetResult());
+				Assert.AreEqual(0, decompressionStream.ReadAsync(Memory<byte>.Empty).GetAwaiter().GetResult());
+
+				Assert.AreEqual(1, decompressionStream.Read(result, 3, 1));
+				Assert.AreEqual(1, decompressionStream.Read(new Span<byte>(result, 4, 1)));
+				Assert.AreEqual(1, decompressionStream.ReadAsync(result, 5, 1).GetAwaiter().GetResult());
+				Assert.AreEqual(1, decompressionStream.ReadAsync(new Memory<byte>(result, 6, 1)).GetAwaiter().GetResult());
+			}
+
+			Assert.AreEqual(data, result);
+		}
+
+
 		[TestCase(new byte[0], 0, 0)]
 		[TestCase(new byte[] {1, 2, 3}, 1, 2)]
 		[TestCase(new byte[] {1, 2, 3}, 0, 2)]
 		[TestCase(new byte[] {1, 2, 3}, 1, 1)]
 		[TestCase(new byte[] {1, 2, 3}, 0, 3)]
-		public void StreamingCompressionSingleWrite(byte[] data, int offset, int count)
+		public void StreamingCompressionSimpleWrite(byte[] data, int offset, int count)
 		{
 			var tempStream = new MemoryStream();
 			using(var compressionStream = new CompressionStream(tempStream))
@@ -73,7 +115,7 @@ namespace ZstdNet.Tests
 		[TestCase(5)]
 		[TestCase(9)]
 		[TestCase(10)]
-		public void StreamingDecompressionSingleRead(int readCount)
+		public void StreamingDecompressionSimpleRead(int readCount)
 		{
 			var data = new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
@@ -192,8 +234,8 @@ namespace ZstdNet.Tests
 
 		[Test, Combinatorial, Parallelizable(ParallelScope.Children)]
 		public void RoundTrip_StreamingToStreaming(
-			[Values(1, 2, 7, 1024, 65535, DataGenerator.LargeBufferSize, DataGenerator.LargeBufferSize + 1)] int zstdBufferSize,
-			[Values(1, 2, 7, 1024, 65535, DataGenerator.LargeBufferSize, DataGenerator.LargeBufferSize + 1)] int copyBufferSize)
+			[Values(1, 2, 7, 101, 1024, 65535, DataGenerator.LargeBufferSize, DataGenerator.LargeBufferSize + 1)] int zstdBufferSize,
+			[Values(1, 2, 7, 101, 1024, 65535, DataGenerator.LargeBufferSize, DataGenerator.LargeBufferSize + 1)] int copyBufferSize)
 		{
 			var testStream = DataGenerator.GetLargeStream(DataFill.Sequential);
 
@@ -210,26 +252,49 @@ namespace ZstdNet.Tests
 			Assert.AreEqual(testStream.ToArray(), resultStream.ToArray());
 		}
 
+		[Test, Combinatorial, Parallelizable(ParallelScope.Children)]
+		public async Task RoundTrip_StreamingToStreamingAsync(
+			[Values(1, 2, 7, 101, 1024, 65535, DataGenerator.LargeBufferSize, DataGenerator.LargeBufferSize + 1)] int zstdBufferSize,
+			[Values(1, 2, 7, 101, 1024, 65535, DataGenerator.LargeBufferSize, DataGenerator.LargeBufferSize + 1)] int copyBufferSize)
+		{
+			var testStream = DataGenerator.GetLargeStream(DataFill.Sequential);
+
+			var tempStream = new MemoryStream();
+			await using(var compressionStream = new CompressionStream(tempStream, zstdBufferSize))
+				await testStream.CopyToAsync(compressionStream, copyBufferSize);
+
+			tempStream.Seek(0, SeekOrigin.Begin);
+
+			var resultStream = new MemoryStream();
+			await using(var decompressionStream = new DecompressionStream(tempStream, zstdBufferSize))
+				await decompressionStream.CopyToAsync(resultStream, copyBufferSize);
+
+			Assert.AreEqual(testStream.ToArray(), resultStream.ToArray());
+		}
+
 		[Test, Explicit("stress")]
-		public void RoundTrip_StreamingToStreaming_Stress()
+		public void RoundTrip_StreamingToStreaming_Stress([Values(true, false)] bool async)
 		{
 			long i = 0;
 			Enumerable.Range(0, 10000)
 				.AsParallel()
-				.WithDegreeOfParallelism(100)
+				.WithDegreeOfParallelism(Environment.ProcessorCount * 4)
 				.ForAll(_ =>
 				{
 					var buffer = new byte[13];
 					var testStream = DataGenerator.GetSmallStream(DataFill.Random);
 
 					var tempStream = new MemoryStream();
-					using(var compressionStream = new CompressionStream(tempStream, 512))
+					using(var compressionStream = new CompressionStream(tempStream, 511))
 					{
 						int bytesRead;
 						int offset = (int)(Interlocked.Read(ref i) % buffer.Length);
 						while((bytesRead = testStream.Read(buffer, offset, buffer.Length - offset)) > 0)
 						{
-							compressionStream.Write(buffer, offset, bytesRead);
+							if(async)
+								compressionStream.WriteAsync(buffer, offset, bytesRead).GetAwaiter().GetResult();
+							else
+								compressionStream.Write(buffer, offset, bytesRead);
 							if(Interlocked.Increment(ref i) % 100 == 0)
 								GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true, true);
 						}
@@ -238,11 +303,11 @@ namespace ZstdNet.Tests
 					tempStream.Seek(0, SeekOrigin.Begin);
 
 					var resultStream = new MemoryStream();
-					using(var decompressionStream = new DecompressionStream(tempStream, 512))
+					using(var decompressionStream = new DecompressionStream(tempStream, 511))
 					{
 						int bytesRead;
 						int offset = (int)(Interlocked.Read(ref i) % buffer.Length);
-						while((bytesRead = decompressionStream.Read(buffer, offset, buffer.Length - offset)) > 0)
+						while((bytesRead = async ? decompressionStream.ReadAsync(buffer, offset, buffer.Length - offset).GetAwaiter().GetResult() : decompressionStream.Read(buffer, offset, buffer.Length - offset)) > 0)
 						{
 							resultStream.Write(buffer, offset, bytesRead);
 							if(Interlocked.Increment(ref i) % 100 == 0)

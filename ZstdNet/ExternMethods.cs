@@ -163,9 +163,9 @@ namespace ZstdNet
 		[StructLayout(LayoutKind.Sequential)]
 		internal struct ZSTD_Buffer
 		{
-			public ZSTD_Buffer(IntPtr buffer, size_t pos, size_t size)
+			public ZSTD_Buffer(size_t pos, size_t size)
 			{
-				this.buffer = buffer;
+				this.buffer = IntPtr.Zero;
 				this.size = size;
 				this.pos = pos;
 			}
