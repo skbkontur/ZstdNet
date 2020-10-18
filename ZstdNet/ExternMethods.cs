@@ -71,6 +71,11 @@ namespace ZstdNet
 			=> ZSTD_decompressDCtx(ctx, ref MemoryMarshal.GetReference(dst), dstCapacity, ref MemoryMarshal.GetReference(src), srcSize);
 
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_compress2(IntPtr ctx, ref byte dst, size_t dstCapacity, ref byte src, size_t srcSize);
+		public static size_t ZSTD_compress2(IntPtr ctx, Span<byte> dst, size_t dstCapacity, ReadOnlySpan<byte> src, size_t srcSize)
+			=> ZSTD_compress2(ctx, ref MemoryMarshal.GetReference(dst), dstCapacity, ref MemoryMarshal.GetReference(src), srcSize);
+
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
 		public static extern IntPtr ZSTD_createCDict(byte[] dict, size_t dictSize, int compressionLevel);
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
 		public static extern size_t ZSTD_freeCDict(IntPtr cdict);
@@ -114,6 +119,44 @@ namespace ZstdNet
 		public static extern uint ZSTD_isError(size_t code);
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
 		public static extern IntPtr ZSTD_getErrorName(size_t code);
+
+		#region Advanced APIs
+
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_CCtx_reset(IntPtr cctx, ZSTD_ResetDirective reset);
+
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern ZSTD_bounds ZSTD_cParam_getBounds(ZSTD_cParameter cParam);
+
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_CCtx_setParameter(IntPtr cctx, ZSTD_cParameter param, int value);
+
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_DCtx_reset(IntPtr dctx, ZSTD_ResetDirective reset);
+
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern ZSTD_bounds ZSTD_dParam_getBounds(ZSTD_dParameter dParam);
+
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_DCtx_setParameter(IntPtr dctx, ZSTD_dParameter param, int value);
+
+
+		[StructLayout(LayoutKind.Sequential)]
+		internal struct ZSTD_bounds
+		{
+			public size_t error;
+			public int lowerBound;
+			public int upperBound;
+		}
+
+		public enum ZSTD_ResetDirective
+		{
+			ZSTD_reset_session_only = 1,
+			ZSTD_reset_parameters = 2,
+			ZSTD_reset_session_and_parameters = 3
+		}
+
+		#endregion
 
 		#region Streaming APIs
 
@@ -162,6 +205,12 @@ namespace ZstdNet
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
 		public static extern size_t ZSTD_initCStream_usingCDict(IntPtr zds, IntPtr dict);
 
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_CCtx_refCDict(IntPtr cctx, IntPtr cdict);
+
+		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+		public static extern size_t ZSTD_DCtx_refDDict(IntPtr cctx, IntPtr cdict);
+
 		[StructLayout(LayoutKind.Sequential)]
 		internal struct ZSTD_Buffer
 		{
@@ -180,5 +229,40 @@ namespace ZstdNet
 		}
 
 		#endregion
+	}
+
+	public enum ZSTD_cParameter
+	{
+		// compression parameters
+		ZSTD_c_compressionLevel = 100,
+		ZSTD_c_windowLog = 101,
+		ZSTD_c_hashLog = 102,
+		ZSTD_c_chainLog = 103,
+		ZSTD_c_searchLog = 104,
+		ZSTD_c_minMatch = 105,
+		ZSTD_c_targetLength = 106,
+		ZSTD_c_strategy = 107,
+
+		// long distance matching mode parameters
+		ZSTD_c_enableLongDistanceMatching = 160,
+		ZSTD_c_ldmHashLog = 161,
+		ZSTD_c_ldmMinMatch = 162,
+		ZSTD_c_ldmBucketSizeLog = 163,
+		ZSTD_c_ldmHashRateLog = 164,
+
+		// frame parameters
+		ZSTD_c_contentSizeFlag = 200,
+		ZSTD_c_checksumFlag = 201,
+		ZSTD_c_dictIDFlag = 202,
+
+		// multi-threading parameters
+		ZSTD_c_nbWorkers = 400,
+		ZSTD_c_jobSize = 401,
+		ZSTD_c_overlapLog = 402
+	}
+
+	public enum ZSTD_dParameter
+	{
+		ZSTD_d_windowLogMax = 100
 	}
 }

@@ -41,10 +41,15 @@ namespace ZstdNet
 			innerStream = stream;
 
 			dStream = ZSTD_createDStream().EnsureZstdSuccess();
-			if(options == null || options.Ddict == IntPtr.Zero)
-				ZSTD_initDStream(dStream).EnsureZstdSuccess();
-			else
-				ZSTD_initDStream_usingDDict(dStream, options.Ddict).EnsureZstdSuccess();
+			ZSTD_DCtx_reset(dStream, ZSTD_ResetDirective.ZSTD_reset_session_only).EnsureZstdSuccess();
+
+			if(options != null)
+			{
+				options.ApplyDecompressionParams(dStream);
+
+				if(options.Ddict != IntPtr.Zero)
+					ZSTD_DCtx_refDDict(dStream, options.Ddict).EnsureZstdSuccess();
+			}
 
 			this.bufferSize = bufferSize > 0 ? bufferSize : (int)ZSTD_DStreamInSize().EnsureZstdSuccess();
 			inputBuffer = ArrayPool<byte>.Shared.Rent(this.bufferSize);

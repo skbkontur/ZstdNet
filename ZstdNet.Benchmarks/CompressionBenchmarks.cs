@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
@@ -18,6 +19,7 @@ namespace ZstdNet.Benchmarks
 		private byte[] Buffer;
 
 		private readonly Compressor Compressor = new Compressor(CompressionOptions.Default);
+		private readonly Compressor CompressorAdvanced = new Compressor(new CompressionOptions(null, new Dictionary<ZSTD_cParameter, int>()));
 		private readonly Decompressor Decompressor = new Decompressor();
 
 		[GlobalSetup]
@@ -38,6 +40,7 @@ namespace ZstdNet.Benchmarks
 		}
 
 		[Benchmark] public void Compress() => Compressor.Wrap(Data, Buffer, 0);
+		[Benchmark] public void CompressAdvanced() => CompressorAdvanced.Wrap(Data, Buffer, 0);
 		[Benchmark] public void Decompress() => Decompressor.Unwrap(CompressedData, Buffer, 0);
 
 		[Benchmark]

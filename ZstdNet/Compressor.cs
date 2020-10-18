@@ -13,6 +13,11 @@ namespace ZstdNet
 		{
 			Options = options;
 			cctx = ExternMethods.ZSTD_createCCtx().EnsureZstdSuccess();
+
+			options.ApplyCompressionParams(cctx);
+
+			if(options.Cdict != IntPtr.Zero)
+				ExternMethods.ZSTD_CCtx_refCDict(cctx, options.Cdict).EnsureZstdSuccess();
 		}
 
 		~Compressor() => Dispose(false);
@@ -72,9 +77,11 @@ namespace ZstdNet
 
 		public int Wrap(ReadOnlySpan<byte> src, Span<byte> dst)
 		{
-			var dstSize = Options.Cdict == IntPtr.Zero
-				? ExternMethods.ZSTD_compressCCtx(cctx, dst, (size_t)dst.Length, src, (size_t)src.Length, Options.CompressionLevel)
-				: ExternMethods.ZSTD_compress_usingCDict(cctx, dst, (size_t)dst.Length, src, (size_t)src.Length, Options.Cdict);
+			var dstSize = Options.AdvancedParams != null
+				? ExternMethods.ZSTD_compress2(cctx, dst, (size_t)dst.Length, src, (size_t)src.Length)
+				: Options.Cdict == IntPtr.Zero
+					? ExternMethods.ZSTD_compressCCtx(cctx, dst, (size_t)dst.Length, src, (size_t)src.Length, Options.CompressionLevel)
+					: ExternMethods.ZSTD_compress_usingCDict(cctx, dst, (size_t)dst.Length, src, (size_t)src.Length, Options.Cdict);
 
 			return (int)dstSize.EnsureZstdSuccess();
 		}

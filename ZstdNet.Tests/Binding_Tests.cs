@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -40,6 +41,32 @@ namespace ZstdNet.Tests
 				decompressed = decompressor.Unwrap(compressed);
 
 			CollectionAssert.AreEqual(data, decompressed);
+		}
+
+		[Test]
+		public void CompressAndDecompress_worksCorrectly_advanced([Values(false, true)] bool useDictionary)
+		{
+			var data = GenerateSample();
+			var dict = useDictionary ? BuildDictionary() : null;
+
+			byte[] compressed1, compressed2;
+
+			using(var options = new CompressionOptions(dict, new Dictionary<ZSTD_cParameter, int> {{ZSTD_cParameter.ZSTD_c_checksumFlag, 0}}))
+			using(var compressor = new Compressor(options))
+				compressed1 = compressor.Wrap(data);
+
+			using(var options = new CompressionOptions(dict, new Dictionary<ZSTD_cParameter, int> {{ZSTD_cParameter.ZSTD_c_checksumFlag, 1}}))
+			using(var compressor = new Compressor(options))
+				compressed2 = compressor.Wrap(data);
+
+			Assert.AreEqual(compressed1.Length + 4, compressed2.Length);
+
+			using(var options = new DecompressionOptions(dict, new Dictionary<ZSTD_dParameter, int>()))
+			using(var decompressor = new Decompressor(options))
+			{
+				CollectionAssert.AreEqual(data, decompressor.Unwrap(compressed1));
+				CollectionAssert.AreEqual(data, decompressor.Unwrap(compressed2));
+			}
 		}
 
 		[Test]

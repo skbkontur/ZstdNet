@@ -13,6 +13,8 @@ namespace ZstdNet
 		{
 			Options = options;
 			dctx = ExternMethods.ZSTD_createDCtx().EnsureZstdSuccess();
+
+			options.ApplyDecompressionParams(dctx);
 		}
 
 		~Decompressor() => Dispose(false);

@@ -40,10 +40,15 @@ namespace ZstdNet
 			innerStream = stream;
 
 			cStream = ZSTD_createCStream().EnsureZstdSuccess();
-			if(options.Cdict == IntPtr.Zero)
-				ZSTD_initCStream(cStream, options.CompressionLevel).EnsureZstdSuccess();
-			else
-				ZSTD_initCStream_usingCDict(cStream, options.Cdict).EnsureZstdSuccess();
+			ZSTD_CCtx_reset(cStream, ZSTD_ResetDirective.ZSTD_reset_session_only).EnsureZstdSuccess();
+
+			if(options != null)
+			{
+				options.ApplyCompressionParams(cStream);
+
+				if(options.Cdict != IntPtr.Zero)
+					ZSTD_CCtx_refCDict(cStream, options.Cdict).EnsureZstdSuccess();
+			}
 
 			this.bufferSize = bufferSize > 0 ? bufferSize : (int)ZSTD_CStreamOutSize().EnsureZstdSuccess();
 			outputBuffer = ArrayPool<byte>.Shared.Rent(this.bufferSize);
