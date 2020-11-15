@@ -35,7 +35,7 @@ Reference
 
 ### Requirements
 
-*ZstdNet* requires *libzstd* >= v1.0.0. Both 32-bit and 64-bit versions are supported.
+*ZstdNet* requires *libzstd* >= v1.4.0. Both 32-bit and 64-bit versions are supported.
 The corresponding DLLs are included in this repository cross-compiled using
 `(i686|x86_64)-w64-mingw32-gcc -DZSTD_MULTITHREAD -DZSTD_LEGACY_SUPPORT=0 -pthread -s`.
 Note that `ZSTD_LEGACY_SUPPORT=0` means "do not support legacy formats" to minimize the binary size.
@@ -43,11 +43,14 @@ Note that `ZSTD_LEGACY_SUPPORT=0` means "do not support legacy formats" to minim
 ### Exceptions
 
 The wrapper throws `ZstdException` in case of malformed data or an error inside *libzstd*.
-If the given destination buffer is too small, `InsufficientMemoryException` is thrown away.
+If the given destination buffer is too small, `ZstdException` with `ZSTD_error_dstSize_tooSmall`
+error code is thrown away.
+Check [zstd_errors.h](https://github.com/facebook/zstd/blob/v1.4.5/lib/common/zstd_errors.h#L52) for more info.
 
 ### Compressor class
 
-Block compression implementation. Instances of this class are **not** thread-safe.
+Block compression implementation. Instances of this class are **not thread-safe**.
+Consider using `ThreadStatic` or pool of compressors for bulk processing.
 
 * Constructor allow specifying compression options. Otherwise, default values will be used for `CompressionOptions`.
 
@@ -79,10 +82,15 @@ Block compression implementation. Instances of this class are **not** thread-saf
   int Wrap(ReadOnlySpan<byte> src, Span<byte> dst);
   ```
 
+  Note that on buffers close to 2GB `Wrap` tries its best, but if `src` is uncompressible and its size is too large,
+  `ZSTD_error_dstSize_tooSmall` will be thrown. `Wrap` method call will only be reliable for a buffer size such that
+  `GetCompressBoundLong(size) <= 0x7FFFFFC7`. Consider using streaming compression API on large data inputs.
+
 * `GetCompressBound` returns required destination buffer size for source data of size `size`.
 
   ```c#
   static int GetCompressBound(int size)
+  static ulong GetCompressBoundLong(ulong size)
   ```
 
 ### CompressionStream class
@@ -119,7 +127,7 @@ Implementation of streaming compression. The stream is write-only.
 
 Stores compression options and "digested" (for compression) information
 from a compression dictionary, if present.
-Instances of this class **are** thread-safe. They can be shared across threads to avoid
+Instances of this class **are thread-safe**. They can be shared across threads to avoid
 performance and memory overhead.
 
 * Constructor
@@ -127,6 +135,7 @@ performance and memory overhead.
   ```c#
   CompressionOptions(int compressionLevel);
   CompressionOptions(byte[] dict, int compressionLevel = DefaultCompressionLevel);
+  CompressionOptions(byte[] dict, IReadOnlyDictionary<ZSTD_cParameter, int> advancedParams, int compressionLevel = DefaultCompressionLevel);
   ```
 
   Options:
@@ -134,8 +143,12 @@ performance and memory overhead.
       It can be read from a file or generated with `DictBuilder` class.
       Default is `null` (no dictionary).
     - `int compressionLevel` &mdash; compression level.
-      Should be in range from 1 to `CompressionOptions.MaxCompressionLevel` (currently 22).
+      Should be in range from `CompressionOptions.MinCompressionLevel` to `CompressionOptions.MaxCompressionLevel` (currently 22).
       Default is `CompressionOptions.DefaultCompressionLevel` (currently 3).
+    - `IReadOnlyDictionary<ZSTD_cParameter, int> advancedParams` &mdash; advanced API provides a way
+      to set specific parameters during compression. For example, it allows you to compress with multiple threads,
+      enable long distance matching mode and more.
+      Check [zstd.h](https://github.com/facebook/zstd/blob/v1.4.5/lib/zstd.h#L265) for additional info.
 
   Specified options will be exposed in read-only fields.
 
@@ -151,7 +164,8 @@ performance and memory overhead.
 
 ### Decompressor class
 
-Block decompression implementation. Instances of this class are **not** thread-safe.
+Block decompression implementation. Instances of this class are **not thread-safe**.
+Consider using `ThreadStatic` or pool of decompressors for bulk processing.
 
 * Constructor allow specifying decompression options. Otherwise, default values for `DecompressionOptions` will be used.
 
@@ -235,7 +249,7 @@ Implementation of streaming decompression. The stream is read-only.
 
 Stores decompression options and "digested" (for decompression) information
 from a compression dictionary, if present.
-Instances of this class **are** thread-safe. They can be shared across threads to avoid
+Instances of this class **are thread-safe**. They can be shared across threads to avoid
 performance and memory overhead.
 
 * Constructor
@@ -243,12 +257,16 @@ performance and memory overhead.
   ```c#
   DecompressionOptions();
   DecompressionOptions(byte[] dict);
+  DecompressionOptions(byte[] dict, IReadOnlyDictionary<ZSTD_dParameter, int> advancedParams);
   ```
 
   Options:
     - `byte[] dict` &mdash; compression dictionary.
       It can be read from a file or generated with `DictBuilder` class.
       Default is `null` (no dictionary).
+    - `IReadOnlyDictionary<ZSTD_dParameter, int> advancedParams` &mdash; advanced decompression API
+      that allows you to set parameters like maximum memory usage.
+      Check [zstd.h](https://github.com/facebook/zstd/blob/v1.4.5/lib/zstd.h#L513) for additional info.
 
   Specified options will be exposed in read-only fields.
 

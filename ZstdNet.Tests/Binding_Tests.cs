@@ -470,15 +470,23 @@ namespace ZstdNet.Tests
 			}
 		}
 
-		private static byte[] BuildDictionary()
+		[Test, Explicit("stress")]
+		public void TrainDictionaryParallel()
 		{
-			return DictBuilder.TrainFromBuffer(Enumerable.Range(0, 8).Select(_ => GenerateSample()).ToArray(), 1024);
+			var dict = BuildDictionary();
+			Enumerable.Range(0, 100000)
+				.AsParallel().WithDegreeOfParallelism(Environment.ProcessorCount * 4)
+				.ForAll(_ => Assert.IsTrue(dict.SequenceEqual(BuildDictionary())));
 		}
+
+		private static byte[] BuildDictionary()
+			=> DictBuilder.TrainFromBuffer(Enumerable.Range(0, 8).Select(_ => GenerateSample()).ToArray(), 1024);
 
 		private static byte[] GenerateSample()
 		{
+			var random = new Random(1234);
 			return Enumerable.Range(0, 10)
-				.SelectMany(_ => Encoding.ASCII.GetBytes($"['a': 'constant_field', 'b': '{Random.Next()}', 'c': {Random.Next()}, 'd': '{(Random.Next(1) == 1 ? "almost" : "sometimes")} constant field']"))
+				.SelectMany(_ => Encoding.ASCII.GetBytes($"['a': 'constant_field', 'b': '{random.Next()}', 'c': {random.Next()}, 'd': '{(random.Next(1) == 1 ? "almost" : "sometimes")} constant field']"))
 				.ToArray();
 		}
 
@@ -505,6 +513,5 @@ namespace ZstdNet.Tests
 		}
 
 		private const int MaxByteArrayLength = 0x7FFFFFC7;
-		private static readonly Random Random = new Random(1234);
 	}
 }

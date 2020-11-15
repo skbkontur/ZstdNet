@@ -252,7 +252,8 @@ namespace ZstdNet.Tests
 			var buffer = new byte[copyBufferSize + offset + 1];
 
 			var tempStream = new MemoryStream();
-			using(var compressionStream = new CompressionStream(tempStream, new CompressionOptions(dict, advanced ? new Dictionary<ZSTD_cParameter, int> {{ZSTD_cParameter.ZSTD_c_windowLog, 11}, {ZSTD_cParameter.ZSTD_c_checksumFlag, 1}, {ZSTD_cParameter.ZSTD_c_nbWorkers, 4}} : null), zstdBufferSize))
+			using(var compressionOptions = new CompressionOptions(dict, advanced ? new Dictionary<ZSTD_cParameter, int> {{ZSTD_cParameter.ZSTD_c_windowLog, 11}, {ZSTD_cParameter.ZSTD_c_checksumFlag, 1}, {ZSTD_cParameter.ZSTD_c_nbWorkers, 4}} : null))
+			using(var compressionStream = new CompressionStream(tempStream, compressionOptions, zstdBufferSize))
 			{
 				int bytesRead;
 				while((bytesRead = testStream.Read(buffer, offset, copyBufferSize)) > 0)
@@ -262,7 +263,8 @@ namespace ZstdNet.Tests
 			tempStream.Seek(0, SeekOrigin.Begin);
 
 			var resultStream = new MemoryStream();
-			using(var decompressionStream = new DecompressionStream(tempStream, new DecompressionOptions(dict, advanced ? new Dictionary<ZSTD_dParameter, int> {{ZSTD_dParameter.ZSTD_d_windowLogMax, 11}} : null), zstdBufferSize))
+			using(var decompressionOptions = new DecompressionOptions(dict, advanced ? new Dictionary<ZSTD_dParameter, int> {{ZSTD_dParameter.ZSTD_d_windowLogMax, 11}} : null))
+			using(var decompressionStream = new DecompressionStream(tempStream, decompressionOptions, zstdBufferSize))
 			{
 				int bytesRead;
 				while((bytesRead = decompressionStream.Read(buffer, offset, copyBufferSize)) > 0)
@@ -285,7 +287,8 @@ namespace ZstdNet.Tests
 			var buffer = new byte[copyBufferSize + offset + 1];
 
 			var tempStream = new MemoryStream();
-			await using(var compressionStream = new CompressionStream(tempStream, new CompressionOptions(dict, advanced ? new Dictionary<ZSTD_cParameter, int> {{ZSTD_cParameter.ZSTD_c_windowLog, 11}, {ZSTD_cParameter.ZSTD_c_checksumFlag, 1}, {ZSTD_cParameter.ZSTD_c_nbWorkers, 4}} : null), zstdBufferSize))
+			using(var compressionOptions = new CompressionOptions(dict, advanced ? new Dictionary<ZSTD_cParameter, int> {{ZSTD_cParameter.ZSTD_c_windowLog, 11}, {ZSTD_cParameter.ZSTD_c_checksumFlag, 1}, {ZSTD_cParameter.ZSTD_c_nbWorkers, 4}} : null))
+			await using(var compressionStream = new CompressionStream(tempStream, compressionOptions, zstdBufferSize))
 			{
 				int bytesRead;
 				while((bytesRead = await testStream.ReadAsync(buffer, offset, copyBufferSize)) > 0)
@@ -295,7 +298,8 @@ namespace ZstdNet.Tests
 			tempStream.Seek(0, SeekOrigin.Begin);
 
 			var resultStream = new MemoryStream();
-			await using(var decompressionStream = new DecompressionStream(tempStream, new DecompressionOptions(dict, advanced ? new Dictionary<ZSTD_dParameter, int> {{ZSTD_dParameter.ZSTD_d_windowLogMax, 11}} : null), zstdBufferSize))
+			using(var decompressionOptions = new DecompressionOptions(dict, advanced ? new Dictionary<ZSTD_dParameter, int> {{ZSTD_dParameter.ZSTD_d_windowLogMax, 11}} : null))
+			await using(var decompressionStream = new DecompressionStream(tempStream, decompressionOptions, zstdBufferSize))
 			{
 				int bytesRead;
 				while((bytesRead = await decompressionStream.ReadAsync(buffer, offset, copyBufferSize)) > 0)
@@ -354,6 +358,8 @@ namespace ZstdNet.Tests
 
 					Assert.AreEqual(testStream.ToArray(), resultStream.ToArray());
 				});
+			GC.KeepAlive(compressionOptions);
+			GC.KeepAlive(decompressionOptions);
 		}
 
 		private static byte[] TrainDict()
