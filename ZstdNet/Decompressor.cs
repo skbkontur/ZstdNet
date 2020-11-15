@@ -45,22 +45,15 @@ namespace ZstdNet
 		{
 			var expectedDstSize = GetDecompressedSize(src);
 			if(expectedDstSize > (ulong)maxDecompressedSize)
-				throw new ArgumentOutOfRangeException($"Decompressed size is too big ({expectedDstSize} bytes > authorized {maxDecompressedSize} bytes)");
+				throw new ZstdException(ZSTD_ErrorCode.ZSTD_error_dstSize_tooSmall, $"Decompressed content size {expectedDstSize} is greater than {nameof(maxDecompressedSize)} {maxDecompressedSize}");
+			if(expectedDstSize > Consts.MaxByteArrayLength)
+				throw new ZstdException(ZSTD_ErrorCode.ZSTD_error_dstSize_tooSmall, $"Decompressed content size {expectedDstSize} is greater than max possible byte array size {Consts.MaxByteArrayLength}");
 
 			var dst = new byte[expectedDstSize];
 
-			int dstSize;
-			try
-			{
-				dstSize = Unwrap(src, new Span<byte>(dst), false);
-			}
-			catch(InsufficientMemoryException)
-			{
-				throw new ZstdException("Invalid decompressed size");
-			}
-
-			if((int)expectedDstSize != dstSize)
-				throw new ZstdException("Invalid decompressed size specified in the data");
+			var dstSize = Unwrap(src, new Span<byte>(dst), false);
+			if(expectedDstSize != (ulong)dstSize)
+				throw new ZstdException(ZSTD_ErrorCode.ZSTD_error_GENERIC, "Decompressed content size specified in the src data frame is invalid");
 
 			return dst;
 		}
@@ -75,9 +68,9 @@ namespace ZstdNet
 		{
 			var size = ExternMethods.ZSTD_getFrameContentSize(src, (size_t)src.Length);
 			if(size == ExternMethods.ZSTD_CONTENTSIZE_UNKNOWN)
-				throw new ZstdException("Decompressed size cannot be determined");
+				throw new ZstdException(ZSTD_ErrorCode.ZSTD_error_GENERIC, "Decompressed content size is not specified");
 			if(size == ExternMethods.ZSTD_CONTENTSIZE_ERROR)
-				throw new ZstdException("Decompressed size determining error (e.g. invalid magic number, srcSize too small)");
+				throw new ZstdException(ZSTD_ErrorCode.ZSTD_error_GENERIC, "Decompressed content size cannot be determined (e.g. invalid magic number, srcSize too small)");
 			return size;
 		}
 
@@ -100,8 +93,8 @@ namespace ZstdNet
 			if(bufferSizePrecheck)
 			{
 				var expectedDstSize = GetDecompressedSize(src);
-				if((int)expectedDstSize > dst.Length)
-					throw new InsufficientMemoryException("Buffer size is less than specified decompressed data size");
+				if(expectedDstSize > (ulong)dst.Length)
+					throw new ZstdException(ZSTD_ErrorCode.ZSTD_error_dstSize_tooSmall, "Destination buffer size is less than specified decompressed content size");
 			}
 
 			var dstSize = Options.Ddict == IntPtr.Zero

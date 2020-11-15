@@ -46,11 +46,12 @@ namespace ZstdNet
 
 		public byte[] Wrap(ReadOnlySpan<byte> src)
 		{
-			var dstCapacity = GetCompressBound(src.Length);
+			//NOTE: Wrap tries its best, but if src is uncompressible and the size is too large, ZSTD_error_dstSize_tooSmall will be thrown
+			var dstCapacity = Math.Min(Consts.MaxByteArrayLength, GetCompressBoundLong((ulong)src.Length));
 			var dst = new byte[dstCapacity];
 
 			var dstSize = Wrap(src, new Span<byte>(dst));
-			if(dstCapacity == dstSize)
+			if(dstCapacity == (ulong)dstSize)
 				return dst;
 
 			var result = new byte[dstSize];
@@ -60,6 +61,9 @@ namespace ZstdNet
 
 		public static int GetCompressBound(int size)
 			=> (int)ExternMethods.ZSTD_compressBound((size_t)size);
+
+		public static ulong GetCompressBoundLong(ulong size)
+			=> (ulong)ExternMethods.ZSTD_compressBound((size_t)size);
 
 		public int Wrap(byte[] src, byte[] dst, int offset)
 			=> Wrap(new ReadOnlySpan<byte>(src), dst, offset);

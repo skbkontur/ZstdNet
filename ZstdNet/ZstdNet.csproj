@@ -14,6 +14,7 @@
 		<LangVersion>7.2</LangVersion>
 		<Platforms>AnyCPU;x64;x86</Platforms>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
 	</PropertyGroup>
 	<ItemGroup>
 		<None Include="build\x64\libzstd.dll">

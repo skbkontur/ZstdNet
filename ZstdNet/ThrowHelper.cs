@@ -22,26 +22,23 @@ namespace ZstdNet
 
 		private static void ThrowException(size_t returnValue, string message)
 		{
-			var code = unchecked(0 - (uint) (ulong) returnValue); // Negate returnValue (UintPtr)
-			if(code == ZSTD_error_dstSize_tooSmall)
-				throw new InsufficientMemoryException(message);
-			throw new ZstdException(message);
+			var code = unchecked(0 - (uint)(ulong)returnValue); // Negate returnValue (UIntPtr)
+			throw new ZstdException(unchecked((ZSTD_ErrorCode)code), message);
 		}
-
-		// ReSharper disable once InconsistentNaming
-		// NOTE that this const may change on zstdlib update (error codes API is still considered unstable) https://github.com/facebook/zstd/blob/master/lib/common/zstd_errors.h
-		private const int ZSTD_error_dstSize_tooSmall = 70;
 
 		public static IntPtr EnsureZstdSuccess(this IntPtr returnValue)
 		{
 			if(returnValue == IntPtr.Zero)
-				throw new ZstdException("Failed to create a structure");
+				throw new ZstdException(ZSTD_ErrorCode.ZSTD_error_GENERIC, "Failed to create a structure");
 			return returnValue;
 		}
 	}
 
 	public class ZstdException : Exception
 	{
-		public ZstdException(string message): base(message) { }
+		public ZstdException(ZSTD_ErrorCode code, string message) : base(message)
+			=> Code = code;
+
+		public ZSTD_ErrorCode Code { get; }
 	}
 }
