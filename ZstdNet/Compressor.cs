@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using size_t = System.UIntPtr;
 
 namespace ZstdNet
@@ -48,15 +49,20 @@ namespace ZstdNet
 		{
 			//NOTE: Wrap tries its best, but if src is uncompressible and the size is too large, ZSTD_error_dstSize_tooSmall will be thrown
 			var dstCapacity = Math.Min(Consts.MaxByteArrayLength, GetCompressBoundLong((ulong)src.Length));
-			var dst = new byte[dstCapacity];
+			var dst = ArrayPool<byte>.Shared.Rent((int)dstCapacity);
 
-			var dstSize = Wrap(src, new Span<byte>(dst));
-			if(dstCapacity == (ulong)dstSize)
-				return dst;
+			try
+			{
+				var dstSize = Wrap(src, new Span<byte>(dst));
 
-			var result = new byte[dstSize];
-			Array.Copy(dst, result, dstSize);
-			return result;
+				var result = new byte[dstSize];
+				Array.Copy(dst, result, dstSize);
+				return result;
+			}
+			finally
+			{
+				ArrayPool<byte>.Shared.Return(dst);
+			}
 		}
 
 		public static int GetCompressBound(int size)

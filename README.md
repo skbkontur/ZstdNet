@@ -89,8 +89,8 @@ Consider using `ThreadStatic` or pool of compressors for bulk processing.
 * `GetCompressBound` returns required destination buffer size for source data of size `size`.
 
   ```c#
-  static int GetCompressBound(int size)
-  static ulong GetCompressBoundLong(ulong size)
+  static int GetCompressBound(int size);
+  static ulong GetCompressBoundLong(ulong size);
   ```
 
 ### CompressionStream class
