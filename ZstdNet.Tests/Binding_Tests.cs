@@ -473,10 +473,18 @@ namespace ZstdNet.Tests
 		[Test, Explicit("stress")]
 		public void TrainDictionaryParallel()
 		{
-			var dict = BuildDictionary();
+			var buffer = Enumerable.Range(0, 100000).Select(i => unchecked((byte)(i * i))).ToArray();
+			var samples = Enumerable.Range(0, 100)
+				.Select(i => buffer.Skip(i).Take(200 - i).ToArray())
+				.ToArray();
+
+			var dict = DictBuilder.TrainFromBuffer(samples);
+			Assert.Greater(dict.Length, 0);
+			Assert.LessOrEqual(dict.Length, DictBuilder.DefaultDictCapacity);
+
 			Enumerable.Range(0, 100000)
 				.AsParallel().WithDegreeOfParallelism(Environment.ProcessorCount * 4)
-				.ForAll(_ => Assert.IsTrue(dict.SequenceEqual(BuildDictionary())));
+				.ForAll(_ => Assert.IsTrue(dict.SequenceEqual(DictBuilder.TrainFromBuffer(samples))));
 		}
 
 		private static byte[] BuildDictionary()
