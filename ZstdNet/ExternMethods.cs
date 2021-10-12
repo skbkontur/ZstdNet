@@ -203,9 +203,6 @@ namespace ZstdNet
 		public static extern size_t ZSTD_initDStream_usingDDict(IntPtr zds, IntPtr dict);
 
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
-		public static extern size_t ZSTD_initCStream_usingCDict(IntPtr zds, IntPtr dict);
-
-		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
 		public static extern size_t ZSTD_CCtx_refCDict(IntPtr cctx, IntPtr cdict);
 
 		[DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]

@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-	<ItemGroup Condition="'$(Platform)' == 'AnyCPU'">
-		<None Include="$(MSBuildThisFileDirectory)x64\libzstd.dll">
-			<Link>x64\%(FileName)%(Extension)</Link>
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
-		<None Include="$(MSBuildThisFileDirectory)x86\libzstd.dll">
-			<Link>x86\%(FileName)%(Extension)</Link>
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
-	</ItemGroup>
-	<ItemGroup>
-		<None Include="$(MSBuildThisFileDirectory)x64\libzstd.dll" Condition="'$(Platform)' == 'x64'">
-			<Link>%(FileName)%(Extension)</Link>
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
-		<None Include="$(MSBuildThisFileDirectory)x86\libzstd.dll" Condition="'$(Platform)' == 'x86'">
-			<Link>%(FileName)%(Extension)</Link>
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
-	</ItemGroup>
+  <ItemGroup Condition="'$(Platform)' == 'AnyCPU'">
+    <None Include="$(MSBuildThisFileDirectory)x64\libzstd.dll">
+      <Link>x64\%(FileName)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)x86\libzstd.dll">
+      <Link>x86\%(FileName)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)x64\libzstd.dll" Condition="'$(Platform)' == 'x64'">
+      <Link>%(FileName)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)x86\libzstd.dll" Condition="'$(Platform)' == 'x86'">
+      <Link>%(FileName)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>
