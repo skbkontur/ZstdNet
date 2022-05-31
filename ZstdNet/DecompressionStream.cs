@@ -21,6 +21,8 @@ namespace ZstdNet
 		private UIntPtr pos;
 		private UIntPtr size;
 
+		public readonly DecompressionOptions Options;
+
 		public DecompressionStream(Stream stream)
 			: this(stream, null)
 		{}
@@ -43,6 +45,7 @@ namespace ZstdNet
 			dStream = ZSTD_createDStream().EnsureZstdSuccess();
 			ZSTD_DCtx_reset(dStream, ZSTD_ResetDirective.ZSTD_reset_session_only).EnsureZstdSuccess();
 
+			Options = options;
 			if(options != null)
 			{
 				options.ApplyDecompressionParams(dStream);

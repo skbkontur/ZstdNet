@@ -18,7 +18,7 @@ Zstd
 provides both good compression ratio _and_ speed for your standard compression
 needs. "Standard" translates into everyday situations which neither look for
 highest possible ratio (which LZMA and ZPAQ cover) nor extreme speeds (which
-LZ4 covers). Zstandard is licensed under [BSD 3-Clause License](Native/LICENSE).
+LZ4 covers). Zstandard is licensed under [BSD 3-Clause License](ZstdNet/build/LICENSE).
 
 **Zstd** is initially developed by Yann Collet and the source is available at:
 https://github.com/facebook/zstd
@@ -285,7 +285,7 @@ performance and memory overhead.
 * `TrainFromBuffer` generates a compression dictionary from a collection of samples.
 
   ```c#
-  static byte[] TrainFromBuffer(ICollection<byte[]> samples, int dictCapacity = DefaultDictCapacity);
+  static byte[] TrainFromBuffer(IEnumerable<byte[]> samples, int dictCapacity = DefaultDictCapacity);
   ```
 
   Options:

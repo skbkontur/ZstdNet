@@ -20,6 +20,8 @@ namespace ZstdNet
 		private IntPtr cStream;
 		private UIntPtr pos;
 
+		public readonly CompressionOptions Options;
+
 		public CompressionStream(Stream stream)
 			: this(stream, CompressionOptions.Default)
 		{}
@@ -42,6 +44,7 @@ namespace ZstdNet
 			cStream = ZSTD_createCStream().EnsureZstdSuccess();
 			ZSTD_CCtx_reset(cStream, ZSTD_ResetDirective.ZSTD_reset_session_only).EnsureZstdSuccess();
 
+			Options = options;
 			if(options != null)
 			{
 				options.ApplyCompressionParams(cStream);

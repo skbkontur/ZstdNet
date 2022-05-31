@@ -110,6 +110,42 @@ namespace ZstdNet.Tests
 			Assert.AreEqual(dataToCompress, resultStream.ToArray());
 		}
 
+		[Test]
+		public void StreamingCompressionKeepReferenceToDict()
+		{
+			var dict = TrainDict();
+			Span<byte> data = dict;
+
+			var tempStream = new MemoryStream();
+			using(var compressionStream = new CompressionStream(tempStream, new CompressionOptions(dict)))
+			{
+				for(int i = 0; i < data.Length; i++)
+				{
+					compressionStream.Write(data.Slice(i, 1));
+
+					GC.Collect();
+					GC.WaitForPendingFinalizers();
+					GC.Collect();
+				}
+			}
+
+			tempStream.Seek(0, SeekOrigin.Begin);
+
+			using(var decompressionStream = new DecompressionStream(tempStream, new DecompressionOptions(dict)))
+			{
+				for(int i = 0; i < data.Length; i++)
+				{
+					Assert.AreEqual(data[i], decompressionStream.ReadByte());
+
+					GC.Collect();
+					GC.WaitForPendingFinalizers();
+					GC.Collect();
+				}
+
+				Assert.AreEqual(-1, decompressionStream.ReadByte());
+			}
+		}
+
 		[TestCase(1)]
 		[TestCase(2)]
 		[TestCase(3)]
