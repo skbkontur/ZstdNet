@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 
@@ -21,6 +22,16 @@ namespace ZstdNet.Benchmarks
 		private readonly Compressor Compressor = new Compressor(CompressionOptions.Default);
 		private readonly Compressor CompressorAdvanced = new Compressor(new CompressionOptions(null, new Dictionary<ZSTD_cParameter, int>()));
 		private readonly Decompressor Decompressor = new Decompressor();
+
+		// Native dependencies are not added to the deps.json file via ProjectReference
+		// https://github.com/dotnet/sdk/issues/10575
+		static CompressionOverheadBenchmarks()
+		{
+			var ext = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "dll" : RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "dylib" : "so";
+			NativeLibrary.SetDllImportResolver(typeof(DictBuilder).Assembly, (name, a, b) => name == "libzstd"
+				? NativeLibrary.Load(Path.Combine(AppContext.BaseDirectory, "runtimes", RuntimeInformation.RuntimeIdentifier, "native", $"libzstd.{ext}"))
+				: IntPtr.Zero);
+		}
 
 		[GlobalSetup]
 		public void GlobalSetup()

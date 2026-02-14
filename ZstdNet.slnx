@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="ZstdNet.Benchmarks/ZstdNet.Benchmarks.csproj" />
+  <Project Path="ZstdNet.Tests/ZstdNet.Tests.csproj" />
+  <Project Path="ZstdNet/ZstdNet.csproj" />
+</Solution>
