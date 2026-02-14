@@ -1,0 +1,51 @@
+name: Build and test
+
+on:
+  push:
+  pull_request:
+    branches: [ dev ]
+    paths:
+    - '**.cs'
+    - '**.csproj'
+  workflow_call:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      attestations: read
+
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@baa11fbfe1d6520db94683bd5c7a3818018e4309 # v5.1.0
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install dependencies
+        run: dotnet restore
+
+      - name: Download native libs
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: 22015842187 # https://github.com/skbkontur/ZstdNet/actions/runs/22015842187
+          merge-multiple: true
+          path: ./ZstdNet/
+
+      - name: Check attestation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          find ./ZstdNet/runtimes -path "*/native/libzstd.*" -type f -print -exec gh attestation verify {} --repo skbkontur/ZstdNet ';'
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test --configuration Release --no-build
