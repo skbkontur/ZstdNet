@@ -11,24 +11,49 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
 
     permissions:
       contents: read
       attestations: read
 
-    timeout-minutes: 5
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { os: ubuntu-24.04,     name: linux-x64,   ext: so,    arch: 'x64' }
+          - { os: ubuntu-24.04-arm, name: linux-arm64, ext: so,    arch: 'arm64' }
+          - { os: windows-2025,     name: win-x64,     ext: dll,   arch: 'x64' }
+          - { os: windows-2025,     name: win-x86,     ext: dll,   arch: 'x86' }
+          - { os: windows-11-arm,   name: win-arm64,   ext: dll,   arch: 'arm64' }
+          - { os: macos-15,         name: osx-arm64,   ext: dylib, arch: 'arm64' }
+          - { os: macos-15-intel,   name: osx-x64,     ext: dylib, arch: 'x64' }
+
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup .NET SDK
+        if: ${{ matrix.name != 'win-x86' }}
         uses: actions/setup-dotnet@baa11fbfe1d6520db94683bd5c7a3818018e4309 # v5.1.0
         with:
           dotnet-version: '10.0.x'
 
+      - name: Install dotnet x86
+        if: ${{ matrix.name == 'win-x86' }}
+        run: |
+          iwr -Uri https://dot.net/v1/dotnet-install.ps1 -OutFile dotnet-install.ps1 -UseBasicParsing
+          ./dotnet-install.ps1 -Channel 10.0 -Architecture x86 -InstallDir "C:/Program Files (x86)/dotnet"
+
+      - name: Show info
+        run: dotnet --info
+
       - name: Install dependencies
-        run: dotnet restore
+        run: |
+          dotnet restore ./ZstdNet/ZstdNet.csproj --runtime ${{ matrix.name }}
+          dotnet restore ./ZstdNet.Tests/ZstdNet.Tests.csproj --runtime ${{ matrix.name }}
 
       - name: Download native libs
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
@@ -36,16 +61,20 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: 22015842187 # https://github.com/skbkontur/ZstdNet/actions/runs/22015842187
           merge-multiple: true
+          name: ${{ matrix.name }}
           path: ./ZstdNet/
 
       - name: Check attestation
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_FORCE_TTY: '100%'
         run: |
-          find ./ZstdNet/runtimes -path "*/native/libzstd.*" -type f -print -exec gh attestation verify {} --repo skbkontur/ZstdNet ';'
+          gh attestation verify ./ZstdNet/runtimes/${{ matrix.name }}/native/libzstd.${{ matrix.ext }} --repo skbkontur/ZstdNet
 
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: |
+          dotnet build ./ZstdNet/ZstdNet.csproj --no-restore --runtime ${{ matrix.name }}
+          dotnet build ./ZstdNet.Tests/ZstdNet.Tests.csproj --no-restore --runtime ${{ matrix.name }}
 
       - name: Test
-        run: dotnet test --configuration Release --no-build
+        run: dotnet test ./ZstdNet.Tests/ZstdNet.Tests.csproj --no-build --runtime ${{ matrix.name }}
