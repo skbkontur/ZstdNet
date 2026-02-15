@@ -211,6 +211,8 @@ namespace ZstdNet
 		ZSTD_c_targetLength = 106,
 		ZSTD_c_strategy = 107,
 
+		ZSTD_c_targetCBlockSize = 130,
+
 		// long distance matching mode parameters
 		ZSTD_c_enableLongDistanceMatching = 160,
 		ZSTD_c_ldmHashLog = 161,
@@ -244,20 +246,26 @@ namespace ZstdNet
 		ZSTD_error_frameParameter_windowTooLarge = 16,
 		ZSTD_error_corruption_detected = 20,
 		ZSTD_error_checksum_wrong = 22,
+		ZSTD_error_literals_headerWrong = 24,
 		ZSTD_error_dictionary_corrupted = 30,
 		ZSTD_error_dictionary_wrong = 32,
 		ZSTD_error_dictionaryCreation_failed = 34,
 		ZSTD_error_parameter_unsupported = 40,
+		ZSTD_error_parameter_combination_unsupported = 41,
 		ZSTD_error_parameter_outOfBound = 42,
 		ZSTD_error_tableLog_tooLarge = 44,
 		ZSTD_error_maxSymbolValue_tooLarge = 46,
 		ZSTD_error_maxSymbolValue_tooSmall = 48,
+		ZSTD_error_cannotProduce_uncompressedBlock = 49,
+		ZSTD_error_stabilityCondition_notRespected = 50,
 		ZSTD_error_stage_wrong = 60,
 		ZSTD_error_init_missing = 62,
 		ZSTD_error_memory_allocation = 64,
 		ZSTD_error_workSpace_tooSmall = 66,
 		ZSTD_error_dstSize_tooSmall = 70,
 		ZSTD_error_srcSize_wrong = 72,
-		ZSTD_error_dstBuffer_null = 74
+		ZSTD_error_dstBuffer_null = 74,
+		ZSTD_error_noForwardProgress_destFull = 80,
+		ZSTD_error_noForwardProgress_inputEmpty = 82
 	}
 }
