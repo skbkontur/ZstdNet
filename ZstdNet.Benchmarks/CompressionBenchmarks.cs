@@ -66,10 +66,7 @@ namespace ZstdNet.Benchmarks
 		[Arguments(7, 13)]
 		public async Task CompressStreamAsync(int zstdBufferSize, int copyBufferSize)
 		{
-#if !NET48
-			await
-#endif
-			using var compressionStream = new CompressionStream(Stream.Null, CompressionOptions.Default, zstdBufferSize);
+			await using var compressionStream = new CompressionStream(Stream.Null, CompressionOptions.Default, zstdBufferSize);
 			await new MemoryStream(Data).CopyToAsync(compressionStream, copyBufferSize);
 		}
 
@@ -85,10 +82,7 @@ namespace ZstdNet.Benchmarks
 		[Arguments(7, 13)]
 		public async Task DecompressStreamAsync(int zstdBufferSize, int copyBufferSize)
 		{
-#if !NET48
-			await
-#endif
-			using var decompressionStream = new DecompressionStream(new MemoryStream(CompressedStreamData), zstdBufferSize);
+			await using var decompressionStream = new DecompressionStream(new MemoryStream(CompressedStreamData), zstdBufferSize);
 			await decompressionStream.CopyToAsync(Stream.Null, copyBufferSize);
 		}
 	}

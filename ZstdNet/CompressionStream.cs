@@ -13,7 +13,7 @@ namespace ZstdNet
 		private readonly Stream innerStream;
 		private readonly byte[] outputBuffer;
 		private readonly int bufferSize;
-#if !(NET45 || NETSTANDARD2_0)
+#if !NETSTANDARD2_0
 		private readonly ReadOnlyMemory<byte> outputMemory;
 #endif
 
@@ -55,12 +55,12 @@ namespace ZstdNet
 
 			this.bufferSize = bufferSize > 0 ? bufferSize : (int)ZSTD_CStreamOutSize().EnsureZstdSuccess();
 			outputBuffer = ArrayPool<byte>.Shared.Rent(this.bufferSize);
-#if !(NET45 || NETSTANDARD2_0)
+#if !NETSTANDARD2_0
 			outputMemory = new ReadOnlyMemory<byte>(outputBuffer, 0, this.bufferSize);
 #endif
 		}
 
-#if !(NET45 || NETSTANDARD2_0)
+#if !NETSTANDARD2_0
 		public override void Write(ReadOnlySpan<byte> buffer)
 		{
 			EnsureNotDisposed();
@@ -89,7 +89,7 @@ namespace ZstdNet
 			EnsureParamsValid(buffer, offset, count);
 			EnsureNotDisposed();
 
-#if !(NET45 || NETSTANDARD2_0)
+#if !NETSTANDARD2_0
 			return WriteInternalAsync(new ReadOnlyMemory<byte>(buffer, offset, count), cancellationToken).AsTask();
 #else
 			return WriteInternalAsync(new ReadOnlyMemory<byte>(buffer, offset, count), cancellationToken);
@@ -121,7 +121,7 @@ namespace ZstdNet
 		}
 
 		private async
-#if !(NET45 || NETSTANDARD2_0)
+#if !NETSTANDARD2_0
 			ValueTask
 #else
 			Task
@@ -160,7 +160,7 @@ namespace ZstdNet
 			}
 		}
 
-#if !(NET45 || NETSTANDARD2_0)
+#if !NETSTANDARD2_0
 		private void FlushOutputBuffer(ReadOnlySpan<byte> outputSpan)
 			=> innerStream.Write(outputSpan);
 		private ValueTask FlushOutputBufferAsync(ref ZSTD_Buffer output, CancellationToken cancellationToken)
@@ -196,7 +196,7 @@ namespace ZstdNet
 		{
 			EnsureNotDisposed();
 
-#if !(NET45 || NETSTANDARD2_0)
+#if !NETSTANDARD2_0
 			return FlushCompressStreamAsync(ZSTD_EndDirective.ZSTD_e_flush, cancellationToken).AsTask();
 #else
 			return FlushCompressStreamAsync(ZSTD_EndDirective.ZSTD_e_flush, cancellationToken);
@@ -228,7 +228,7 @@ namespace ZstdNet
 		}
 
 		private async
-#if !(NET45 || NETSTANDARD2_0)
+#if !NETSTANDARD2_0
 			ValueTask
 #else
 			Task
@@ -257,7 +257,7 @@ namespace ZstdNet
 		public override void SetLength(long value) => throw new NotSupportedException();
 		public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 
-#if !(NET45 || NETSTANDARD2_0)
+#if !NETSTANDARD2_0
 		public override async ValueTask DisposeAsync()
 		{
 			await DisposeAsyncCore().ConfigureAwait(false);
