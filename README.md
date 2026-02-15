@@ -1,7 +1,9 @@
 ZstdNet
 =======
 
+[![Build and test](https://github.com/skbkontur/ZstdNet/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/skbkontur/ZstdNet/actions/workflows/build-and-test.yml)
 [![NuGet](https://img.shields.io/nuget/v/ZstdNet.svg)](https://www.nuget.org/packages/ZstdNet/)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/ZstdNet.svg)](https://www.nuget.org/packages/ZstdNet)
 
 **ZstdNet** is a wrapper of **Zstd** native library for .NET languages. It has the following features:
 
