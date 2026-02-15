@@ -1,0 +1,69 @@
+name: Pack and publish
+
+on:
+  push:
+    branches:
+      - 'dev'
+
+jobs:
+  pack-and-publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    permissions:
+      id-token: write
+      contents: read
+      attestations: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@baa11fbfe1d6520db94683bd5c7a3818018e4309 # v5.1.0
+        with:
+          dotnet-version: '10.0.103'
+
+      - name: Specify .NET version
+        run: dotnet new globaljson --sdk-version 10.0.103 --roll-forward disable
+
+      - name: Show info
+        run: dotnet --info
+
+      - name: Download native libs
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: 22015842187 # https://github.com/skbkontur/ZstdNet/actions/runs/22015842187
+          merge-multiple: true
+          path: ./ZstdNet/
+
+      - name: Check attestation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_FORCE_TTY: '100%'
+        run: |
+          find ./ZstdNet/runtimes -path "*/native/libzstd.*" -type f -print -exec gh attestation verify {} --repo skbkontur/ZstdNet ';'
+
+      - name: Pack
+        run: dotnet pack --configuration Release --output ./
+
+      - name: Provenance
+        uses: actions/attest-build-provenance@00014ed6ed5efc5b1ab7f7f34a39eb55d41aa4f8 # v3.1.0
+        with:
+          subject-path: './*.nupkg'
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: package
+          path: './*.nupkg'
+
+#      - name: NuGet Login
+#        uses: NuGet/login@d22cc5f58ff5b88bf9bd452535b4335137e24544 # v1
+#        id: login
+#        with:
+#          user: dscheg
+
+#      - name: Publish Nuget package
+#        run: dotnet nuget push *.nupkg --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
