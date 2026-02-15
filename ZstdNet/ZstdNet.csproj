@@ -8,13 +8,14 @@
     <Company>SKB Kontur</Company>
     <Authors>SKB Kontur</Authors>
     <Description>Zstd compression library wrapper for .NET</Description>
-    <Copyright>Copyright © SKB Kontur 2016-present</Copyright>
-    <PackageLicenseUrl>https://github.com/skbkontur/ZstdNet/blob/master/LICENSE</PackageLicenseUrl>
+    <Copyright>Copyright © SKB Kontur 2016-2026</Copyright>
+    <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/skbkontur/ZstdNet</PackageProjectUrl>
     <PackageTags>zstd zstandard compression</PackageTags>
     <LangVersion>7.3</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+    <EnablePackageValidation>true</EnablePackageValidation>
   </PropertyGroup>
 
   <ItemGroup>
