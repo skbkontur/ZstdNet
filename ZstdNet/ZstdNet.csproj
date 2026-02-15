@@ -1,30 +1,30 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<Version>1.5.7</Version>
-		<TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
-		<Title>ZstdNet</Title>
-		<PackageId>ZstdNet</PackageId>
-		<Company>SKB Kontur</Company>
-		<Authors>SKB Kontur</Authors>
-		<Description>Zstd compression library wrapper for .NET</Description>
-		<Copyright>Copyright © SKB Kontur 2016-present</Copyright>
-		<PackageLicenseUrl>https://github.com/skbkontur/ZstdNet/blob/master/LICENSE</PackageLicenseUrl>
-		<PackageProjectUrl>https://github.com/skbkontur/ZstdNet</PackageProjectUrl>
-		<PackageTags>zstd zstandard compression</PackageTags>
-		<LangVersion>7.3</LangVersion>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
-	</PropertyGroup>
+  <PropertyGroup>
+    <Version>1.5.7</Version>
+    <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
+    <Title>ZstdNet</Title>
+    <PackageId>ZstdNet</PackageId>
+    <Company>SKB Kontur</Company>
+    <Authors>SKB Kontur</Authors>
+    <Description>Zstd compression library wrapper for .NET</Description>
+    <Copyright>Copyright © SKB Kontur 2016-present</Copyright>
+    <PackageLicenseUrl>https://github.com/skbkontur/ZstdNet/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/skbkontur/ZstdNet</PackageProjectUrl>
+    <PackageTags>zstd zstandard compression</PackageTags>
+    <LangVersion>7.3</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+  </PropertyGroup>
 
-	<ItemGroup>
-		<None Include="build\*.targets" Pack="true" PackagePath="build\" />
-		<None Include="runtimes\**\*" Pack="true" CopyToOutputDirectory="PreserveNewest" PackagePath="runtimes\" />
-		<None Include="..\LICENSE" Pack="true" PackagePath="lib\" />
-	</ItemGroup>
+  <ItemGroup>
+    <None Include="build\*.targets" Pack="true" PackagePath="build\" />
+    <None Include="runtimes\**\*" Pack="true" CopyToOutputDirectory="PreserveNewest" PackagePath="runtimes\" />
+    <None Include="..\LICENSE" Pack="true" PackagePath="lib\" />
+  </ItemGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-		<PackageReference Include="System.Memory" Version="4.6.3" />
-	</ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.Memory" Version="4.6.3" />
+  </ItemGroup>
 
 </Project>
