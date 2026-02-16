@@ -16,6 +16,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
     <EnablePackageValidation>true</EnablePackageValidation>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
@@ -23,9 +24,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="build\*.targets" Pack="true" PackagePath="build\" />
-    <None Include="runtimes\**\*" Pack="true" CopyToOutputDirectory="PreserveNewest" PackagePath="runtimes\" />
-    <None Include="..\LICENSE" Pack="true" PackagePath="lib\" />
+    <None Include="build/*.targets" Pack="true" PackagePath="build/" />
+    <None Include="runtimes/**/*" Pack="true" CopyToOutputDirectory="PreserveNewest" PackagePath="runtimes/" />
+    <None Include="../LICENSE" Pack="true" PackagePath="/" />
+    <None Include="../README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">

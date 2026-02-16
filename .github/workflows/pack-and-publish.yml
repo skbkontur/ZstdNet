@@ -8,6 +8,8 @@ on:
 jobs:
   pack-and-publish:
     runs-on: ubuntu-24.04
+    environment:
+      name: production
     timeout-minutes: 5
 
     permissions:
@@ -27,7 +29,7 @@ jobs:
       - name: Specify .NET version
         run: dotnet new globaljson --sdk-version 10.0.103 --roll-forward disable
 
-      - name: Show info
+      - name: Show .NET info
         run: dotnet --info
 
       - name: Download native libs
@@ -38,7 +40,7 @@ jobs:
           merge-multiple: true
           path: ./ZstdNet/
 
-      - name: Check attestation
+      - name: Check native libs attestation
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_FORCE_TTY: '100%'
@@ -48,22 +50,16 @@ jobs:
       - name: Pack
         run: dotnet pack --configuration Release --output ./
 
-      - name: Provenance
-        uses: actions/attest-build-provenance@00014ed6ed5efc5b1ab7f7f34a39eb55d41aa4f8 # v3.1.0
+      - name: Attest NuGet package provenance
+        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
         with:
-          subject-path: './*.nupkg'
+          subject-path: './ZstdNet.*.nupkg'
 
       - name: Upload artifacts
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: package
-          path: './*.nupkg'
+          path: './ZstdNet.*.nupkg'
 
-#      - name: NuGet Login
-#        uses: NuGet/login@d22cc5f58ff5b88bf9bd452535b4335137e24544 # v1
-#        id: login
-#        with:
-#          user: dscheg
-
-#      - name: Publish Nuget package
-#        run: dotnet nuget push *.nupkg --api-key "${{ steps.login.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
+      - name: Publish Nuget package
+        run: dotnet nuget push ZstdNet.*.nupkg --api-key "${{ secrets.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json --skip-duplicate
