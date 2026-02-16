@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using NUnit.Framework;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ZstdNet.Tests
 {
-	[TestFixture]
+	[TestClass]
 	public class Binding_Tests
 	{
 		public enum CompressionLevel
@@ -17,8 +17,14 @@ namespace ZstdNet.Tests
 			Max
 		}
 
-		[Test]
-		public void CompressAndDecompress_workCorrectly([Values(false, true)] bool useDictionary, [Values(CompressionLevel.Min, CompressionLevel.Default, CompressionLevel.Max)] CompressionLevel level)
+		[TestMethod]
+		[DataRow(true, CompressionLevel.Min)]
+		[DataRow(true, CompressionLevel.Default)]
+		[DataRow(true, CompressionLevel.Max)]
+		[DataRow(false, CompressionLevel.Min)]
+		[DataRow(false, CompressionLevel.Default)]
+		[DataRow(false, CompressionLevel.Max)]
+		public void CompressAndDecompress_workCorrectly(bool useDictionary, CompressionLevel level)
 		{
 			var data = GenerateSample();
 
@@ -33,8 +39,10 @@ namespace ZstdNet.Tests
 			CollectionAssert.AreEqual(data, CompressAndDecompress(data, dict, compressionLevel));
 		}
 
-		[Test]
-		public void CompressAndDecompress_worksCorrectly_advanced([Values(false, true)] bool useDictionary)
+		[TestMethod]
+		[DataRow(true)]
+		[DataRow(false)]
+		public void CompressAndDecompress_worksCorrectly_advanced(bool useDictionary)
 		{
 			var data = GenerateSample();
 			var dict = useDictionary ? BuildDictionary() : null;
@@ -59,7 +67,7 @@ namespace ZstdNet.Tests
 			}
 		}
 
-		[Test]
+		[TestMethod]
 		public void DecompressWithDictionary_worksCorrectly_onDataCompressedWithoutIt()
 		{
 			var data = GenerateSample();
@@ -77,7 +85,7 @@ namespace ZstdNet.Tests
 			CollectionAssert.AreEqual(data, decompressed);
 		}
 
-		[Test]
+		[TestMethod]
 		public void DecompressWithoutDictionary_throwsZstdException_onDataCompressedWithIt()
 		{
 			var data = GenerateSample();
@@ -92,7 +100,7 @@ namespace ZstdNet.Tests
 				Assert.Throws<ZstdException>(() => decompressor.Unwrap(compressed));
 		}
 
-		[Test]
+		[TestMethod]
 		public void DecompressWithAnotherDictionary_throwsZstdException()
 		{
 			var data = GenerateSample();
@@ -110,7 +118,7 @@ namespace ZstdNet.Tests
 				Assert.Throws<ZstdException>(() => decompressor.Unwrap(compressed));
 		}
 
-		[Test]
+		[TestMethod]
 		public void Compress_reducesDataSize()
 		{
 			var data = GenerateSample();
@@ -119,10 +127,10 @@ namespace ZstdNet.Tests
 			using(var compressor = new Compressor())
 				compressed = compressor.Wrap(data);
 
-			Assert.Greater(data.Length, compressed.Length);
+			Assert.IsGreaterThan(compressed.Length, data.Length);
 		}
 
-		[Test]
+		[TestMethod]
 		public void Compress_worksBetter_withDictionary()
 		{
 			var data = GenerateSample();
@@ -135,11 +143,13 @@ namespace ZstdNet.Tests
 			using(var compressor = new Compressor(options))
 				compressedWithDict = compressor.Wrap(data);
 
-			Assert.Greater(compressedWithoutDict.Length, compressedWithDict.Length);
+			Assert.IsGreaterThan(compressedWithDict.Length, compressedWithoutDict.Length);
 		}
 
-		[Test]
-		public void Decompress_throwsZstdException_onInvalidData([Values(false, true)] bool useDictionary)
+		[TestMethod]
+		[DataRow(true)]
+		[DataRow(false)]
+		public void Decompress_throwsZstdException_onInvalidData(bool useDictionary)
 		{
 			var data = GenerateSample(); // This isn't data in compressed format
 			var dict = useDictionary ? BuildDictionary() : null;
@@ -149,8 +159,10 @@ namespace ZstdNet.Tests
 				Assert.Throws<ZstdException>(() => decompressor.Unwrap(data));
 		}
 
-		[Test]
-		public void Decompress_throwsZstdException_onMalformedDecompressedSize([Values(false, true)] bool useDictionary)
+		[TestMethod]
+		[DataRow(true)]
+		[DataRow(false)]
+		public void Decompress_throwsZstdException_onMalformedDecompressedSize(bool useDictionary)
 		{
 			var data = GenerateSample();
 			var dict = useDictionary ? BuildDictionary() : null;
@@ -163,12 +175,12 @@ namespace ZstdNet.Tests
 			var frameHeader = compressed[4]; // Ensure that we malform decompressed size in the right place
 			if(useDictionary)
 			{
-				Assert.AreEqual(frameHeader, 0x63);
+				Assert.AreEqual(0x63, frameHeader);
 				compressed[9]--;
 			}
 			else
 			{
-				Assert.AreEqual(frameHeader, 0x60);
+				Assert.AreEqual(0x60, frameHeader);
 				compressed[5]--;
 			}
 
@@ -178,8 +190,10 @@ namespace ZstdNet.Tests
 				Assert.Throws<ZstdException>(() => decompressor.Unwrap(compressed));
 		}
 
-		[Test]
-		public void Decompress_throwsArgumentOutOfRangeException_onTooBigData([Values(false, true)] bool useDictionary)
+		[TestMethod]
+		[DataRow(true)]
+		[DataRow(false)]
+		public void Decompress_throwsArgumentOutOfRangeException_onTooBigData(bool useDictionary)
 		{
 			var data = GenerateSample();
 			var dict = useDictionary ? BuildDictionary() : null;
@@ -197,8 +211,10 @@ namespace ZstdNet.Tests
 			}
 		}
 
-		[Test]
-		public void Compress_canRead_fromArraySegment([Values(false, true)] bool useDictionary)
+		[TestMethod]
+		[DataRow(true)]
+		[DataRow(false)]
+		public void Compress_canRead_fromArraySegment(bool useDictionary)
 		{
 			var data = GenerateSample();
 			var segment = new ArraySegment<byte>(data, 2, data.Length - 5);
@@ -214,11 +230,13 @@ namespace ZstdNet.Tests
 			using(var decompressor = new Decompressor(options))
 				decompressed = decompressor.Unwrap(compressed);
 
-			CollectionAssert.AreEqual(segment, decompressed);
+			CollectionAssert.AreEqual(segment.ToArray(), decompressed);
 		}
 
-		[Test]
-		public void CompressAndDecompress_workCorrectly_spans([Values(false, true)] bool useDictionary)
+		[TestMethod]
+		[DataRow(true)]
+		[DataRow(false)]
+		public void CompressAndDecompress_workCorrectly_spans(bool useDictionary)
 		{
 			var buffer = GenerateSample();
 
@@ -245,8 +263,10 @@ namespace ZstdNet.Tests
 			CollectionAssert.AreEqual(data.ToArray(), decompressed.ToArray());
 		}
 
-		[Test]
-		public void Decompress_canRead_fromArraySegment([Values(false, true)] bool useDictionary)
+		[TestMethod]
+		[DataRow(true)]
+		[DataRow(false)]
+		public void Decompress_canRead_fromArraySegment(bool useDictionary)
 		{
 			var data = GenerateSample();
 			var dict = useDictionary ? BuildDictionary() : null;
@@ -267,8 +287,10 @@ namespace ZstdNet.Tests
 			CollectionAssert.AreEqual(data, decompressed);
 		}
 
-		[Test]
-		public void Compress_canWrite_toGivenBuffer([Values(false, true)] bool useDictionary)
+		[TestMethod]
+		[DataRow(true)]
+		[DataRow(false)]
+		public void Compress_canWrite_toGivenBuffer(bool useDictionary)
 		{
 			var data = GenerateSample();
 			var dict = useDictionary ? BuildDictionary() : null;
@@ -288,8 +310,10 @@ namespace ZstdNet.Tests
 			CollectionAssert.AreEqual(data, decompressed);
 		}
 
-		[Test]
-		public void Decompress_canWrite_toGivenBuffer([Values(false, true)] bool useDictionary)
+		[TestMethod]
+		[DataRow(true)]
+		[DataRow(false)]
+		public void Decompress_canWrite_toGivenBuffer(bool useDictionary)
 		{
 			var data = GenerateSample();
 			var dict = useDictionary ? BuildDictionary() : null;
@@ -307,11 +331,13 @@ namespace ZstdNet.Tests
 			using(var decompressor = new Decompressor(options))
 				decompressedSize = decompressor.Unwrap(compressed, decompressed, offset);
 
-			CollectionAssert.AreEqual(data, decompressed.Skip(offset).Take(decompressedSize));
+			CollectionAssert.AreEqual(data, decompressed.Skip(offset).Take(decompressedSize).ToArray());
 		}
 
-		[Test]
-		public void Compress_throwsDstSizeTooSmall_whenDestinationBufferIsTooSmall([Values(false, true)] bool useDictionary)
+		[TestMethod]
+		[DataRow(true)]
+		[DataRow(false)]
+		public void Compress_throwsDstSizeTooSmall_whenDestinationBufferIsTooSmall(bool useDictionary)
 		{
 			var data = GenerateSample();
 			var dict = useDictionary ? BuildDictionary() : null;
@@ -326,8 +352,10 @@ namespace ZstdNet.Tests
 			}
 		}
 
-		[Test]
-		public void Decompress_throwsDstSizeTooSmall_whenDestinationBufferIsTooSmall([Values(false, true)] bool useDictionary)
+		[TestMethod]
+		[DataRow(true)]
+		[DataRow(false)]
+		public void Decompress_throwsDstSizeTooSmall_whenDestinationBufferIsTooSmall(bool useDictionary)
 		{
 			var data = GenerateSample();
 			var dict = useDictionary ? BuildDictionary() : null;
@@ -348,8 +376,10 @@ namespace ZstdNet.Tests
 			}
 		}
 
-		[Test]
-		public void CompressAndDecompress_workCorrectly_onEmptyBuffer([Values(false, true)] bool useDictionary)
+		[TestMethod]
+		[DataRow(true)]
+		[DataRow(false)]
+		public void CompressAndDecompress_workCorrectly_onEmptyBuffer(bool useDictionary)
 		{
 			var data = new byte[0];
 			var dict = useDictionary ? BuildDictionary() : null;
@@ -357,8 +387,10 @@ namespace ZstdNet.Tests
 			CollectionAssert.AreEqual(data, CompressAndDecompress(data, dict));
 		}
 
-		[Test]
-		public void CompressAndDecompress_workCorrectly_onOneByteBuffer([Values(false, true)] bool useDictionary)
+		[TestMethod]
+		[DataRow(true)]
+		[DataRow(false)]
+		public void CompressAndDecompress_workCorrectly_onOneByteBuffer(bool useDictionary)
 		{
 			var data = new byte[] {42};
 			var dict = useDictionary ? BuildDictionary() : null;
@@ -366,8 +398,10 @@ namespace ZstdNet.Tests
 			CollectionAssert.AreEqual(data, CompressAndDecompress(data, dict));
 		}
 
-		[Test]
-		public void CompressAndDecompress_workCorrectly_onArraysOfDifferentSizes([Values(false, true)] bool useDictionary)
+		[TestMethod]
+		[DataRow(true)]
+		[DataRow(false)]
+		public void CompressAndDecompress_workCorrectly_onArraysOfDifferentSizes(bool useDictionary)
 		{
 			var dict = useDictionary ? BuildDictionary() : null;
 			using(var compressionOptions = new CompressionOptions(dict))
@@ -386,8 +420,10 @@ namespace ZstdNet.Tests
 			}
 		}
 
-		[Test]
-		public void CompressAndDecompress_workCorrectly_ifDifferentInstancesRunInDifferentThreads([Values(false, true)] bool useDictionary)
+		[TestMethod]
+		[DataRow(true)]
+		[DataRow(false)]
+		public void CompressAndDecompress_workCorrectly_ifDifferentInstancesRunInDifferentThreads(bool useDictionary)
 		{
 			var dict = useDictionary ? BuildDictionary() : null;
 			using(var compressionOptions = new CompressionOptions(dict))
@@ -411,8 +447,10 @@ namespace ZstdNet.Tests
 					});
 		}
 
-		[Test, Explicit("stress")]
-		public void CompressAndDecompress_workCorrectly_stress([Values(false, true)] bool useDictionary)
+		[TestMethod, CICondition(ConditionMode.Exclude, IgnoreMessage = "stress"), TestCategory("Explicit")]
+		[DataRow(true)]
+		[DataRow(false)]
+		public void CompressAndDecompress_workCorrectly_stress(bool useDictionary)
 		{
 			long i = 0L;
 			var data = GenerateBuffer(65536);
@@ -434,8 +472,10 @@ namespace ZstdNet.Tests
 					});
 		}
 
-		[Test, Explicit("memory consuming")]
-		public void CompressAndDecomress_workCorrectly_2GB([Values(false, true)] bool useDictionary)
+		[TestMethod, CICondition(ConditionMode.Exclude, IgnoreMessage = "memory consuming"), TestCategory("Explicit")]
+		[DataRow(true)]
+		[DataRow(false)]
+		public void CompressAndDecomress_workCorrectly_2GB(bool useDictionary)
 		{
 			var data = new byte[MaxByteArrayLength];
 			Array.Fill<byte>(data, 0xff, 100, 10000000);
@@ -454,8 +494,10 @@ namespace ZstdNet.Tests
 			Assert.IsTrue(data.SequenceEqual(CompressAndDecompress(data, dict)));
 		}
 
-		[Test, Explicit("memory consuming")]
-		public void CompressAndDecomress_throwsDstSizeTooSmall_Over2GB([Values(false, true)] bool useDictionary)
+		[TestMethod, CICondition(ConditionMode.Exclude, IgnoreMessage = "memory consuming"), TestCategory("Explicit")]
+		[DataRow(true)]
+		[DataRow(false)]
+		public void CompressAndDecomress_throwsDstSizeTooSmall_Over2GB(bool useDictionary)
 		{
 			var data = new byte[MaxByteArrayLength];
 			new Random(1337).NextBytes(data); //NOTE: Uncompressible data
@@ -470,7 +512,7 @@ namespace ZstdNet.Tests
 			}
 		}
 
-		[Test, Explicit("stress")]
+		[TestMethod, CICondition(ConditionMode.Exclude, IgnoreMessage = "stress"), TestCategory("Explicit")]
 		public void TrainDictionaryParallel()
 		{
 			var buffer = Enumerable.Range(0, 100000).Select(i => unchecked((byte)(i * i))).ToArray();
@@ -479,8 +521,8 @@ namespace ZstdNet.Tests
 				.ToArray();
 
 			var dict = DictBuilder.TrainFromBuffer(samples);
-			Assert.Greater(dict.Length, 0);
-			Assert.LessOrEqual(dict.Length, DictBuilder.DefaultDictCapacity);
+			Assert.IsGreaterThan(0, dict.Length);
+			Assert.IsLessThanOrEqualTo(DictBuilder.DefaultDictCapacity, dict.Length);
 
 			Enumerable.Range(0, 100000)
 				.AsParallel().WithDegreeOfParallelism(Environment.ProcessorCount * 4)

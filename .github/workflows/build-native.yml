@@ -1,0 +1,74 @@
+name: Build Native
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+
+    permissions:
+      id-token: write
+      contents: read
+      attestations: write
+
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { os: ubuntu-24.04,   name: linux-x64,   ext: so,    args: '' }
+          - { os: ubuntu-24.04,   name: linux-arm64, ext: so,    args: '-DCMAKE_SYSTEM_PROCESSOR=aarch64 -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc' }
+          - { os: windows-2025,   name: win-x64,     ext: dll,   args: '-DZSTD_USE_STATIC_RUNTIME=ON' }
+          - { os: windows-2025,   name: win-x86,     ext: dll,   args: '-DZSTD_USE_STATIC_RUNTIME=ON -A Win32' }
+          - { os: windows-2025,   name: win-arm64,   ext: dll,   args: '-DZSTD_USE_STATIC_RUNTIME=ON -A ARM64' }
+          - { os: macos-15,       name: osx-arm64,   ext: dylib, args: '' }
+          - { os: macos-15-intel, name: osx-x64,     ext: dylib, args: '' }
+
+    steps:
+      - name: Checkout zstd sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: facebook/zstd
+          ref: f8745da6ff1ad1e7bab384bd1f9d742439278e99 # v1.5.7
+
+      - name: Install GCC ARM64
+        if: ${{ matrix.name == 'linux-arm64' }}
+        run: sudo apt-get update && sudo apt-get install gcc-aarch64-linux-gnu -y
+
+      - name: Configure CMake
+        run: >
+          cmake -S build/cmake -B output
+          ${{ matrix.args }}
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          -DBUILD_SHARED_LIBS=ON
+          -DZSTD_BUILD_TESTS=OFF
+          -DZSTD_BUILD_SHARED=ON
+          -DZSTD_BUILD_STATIC=OFF
+          -DZSTD_BUILD_PROGRAMS=OFF
+          -DZSTD_LIB_DEPRECATED=OFF
+          -DZSTD_LEGACY_SUPPORT=0
+
+      - name: Build using CMake
+        run: cmake --build output --config Release
+
+      - name: Rename shared lib file (Windows)
+        if: ${{ startsWith(runner.os, 'win') }}
+        run: mv output/lib/Release/zstd.dll output/lib/libzstd.dll
+
+      - name: Move shared lib to runtimes
+        run: |
+          mkdir -p artifacts/runtimes/${{ matrix.name }}/native/
+          cp output/lib/libzstd.${{ matrix.ext }} artifacts/runtimes/${{ matrix.name }}/native/
+
+      - name: Provenance attestation
+        uses: actions/attest-build-provenance@96278af6caaf10aea03fd8d33a09a777ca52d62f # v3.2.0
+        with:
+          subject-path: artifacts/runtimes/*/native/libzstd.*
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: ${{ matrix.name }}
+          path: artifacts/

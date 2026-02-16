@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using NUnit.Framework;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ZstdNet.Tests
 {
@@ -43,10 +43,10 @@ namespace ZstdNet.Tests
 		}
 	}
 
-	[TestFixture]
+	[TestClass]
 	public class SteamingTests
 	{
-		[Test]
+		[TestMethod]
 		public void StreamingCompressionZeroAndOneByte()
 		{
 			var data = new byte[] {0, 0, 0, 1, 2, 3, 4, 0, 0, 0};
@@ -83,15 +83,15 @@ namespace ZstdNet.Tests
 				Assert.AreEqual(1, decompressionStream.ReadAsync(new Memory<byte>(result, 6, 1)).GetAwaiter().GetResult());
 			}
 
-			Assert.AreEqual(data, result);
+			CollectionAssert.AreEqual(data, result);
 		}
 
-
-		[TestCase(new byte[0], 0, 0)]
-		[TestCase(new byte[] {1, 2, 3}, 1, 2)]
-		[TestCase(new byte[] {1, 2, 3}, 0, 2)]
-		[TestCase(new byte[] {1, 2, 3}, 1, 1)]
-		[TestCase(new byte[] {1, 2, 3}, 0, 3)]
+		[TestMethod]
+		[DataRow(new byte[0], 0, 0)]
+		[DataRow(new byte[] {1, 2, 3}, 1, 2)]
+		[DataRow(new byte[] {1, 2, 3}, 0, 2)]
+		[DataRow(new byte[] {1, 2, 3}, 1, 1)]
+		[DataRow(new byte[] {1, 2, 3}, 0, 3)]
 		public void StreamingCompressionSimpleWrite(byte[] data, int offset, int count)
 		{
 			var tempStream = new MemoryStream();
@@ -107,10 +107,10 @@ namespace ZstdNet.Tests
 			var dataToCompress = new byte[count];
 			Array.Copy(data, offset, dataToCompress, 0, count);
 
-			Assert.AreEqual(dataToCompress, resultStream.ToArray());
+			CollectionAssert.AreEqual(dataToCompress, resultStream.ToArray());
 		}
 
-		[Test]
+		[TestMethod]
 		public void StreamingCompressionKeepReferenceToDict()
 		{
 			var dict = TrainDict();
@@ -146,12 +146,13 @@ namespace ZstdNet.Tests
 			}
 		}
 
-		[TestCase(1)]
-		[TestCase(2)]
-		[TestCase(3)]
-		[TestCase(5)]
-		[TestCase(9)]
-		[TestCase(10)]
+		[TestMethod]
+		[DataRow(1)]
+		[DataRow(2)]
+		[DataRow(3)]
+		[DataRow(5)]
+		[DataRow(9)]
+		[DataRow(10)]
 		public void StreamingDecompressionSimpleRead(int readCount)
 		{
 			var data = new byte[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
@@ -169,17 +170,17 @@ namespace ZstdNet.Tests
 				int totalBytesRead = 0;
 				while((bytesRead = decompressionStream.Read(buffer, totalBytesRead, Math.Min(readCount, buffer.Length - totalBytesRead))) > 0)
 				{
-					Assert.LessOrEqual(bytesRead, readCount);
+					Assert.IsLessThanOrEqualTo(readCount, bytesRead);
 					totalBytesRead += bytesRead;
 				}
 
 				Assert.AreEqual(data.Length, totalBytesRead);
 			}
 
-			Assert.AreEqual(data, buffer);
+			CollectionAssert.AreEqual(data, buffer);
 		}
 
-		[Test]
+		[TestMethod]
 		public void StreamingCompressionFlushDataFromInternalBuffers()
 		{
 			var testBuffer = new byte[1];
@@ -190,7 +191,7 @@ namespace ZstdNet.Tests
 				compressionStream.Write(testBuffer, 0, testBuffer.Length);
 				compressionStream.Flush();
 
-				Assert.Greater(tempStream.Length, 0);
+				Assert.IsGreaterThan(0, tempStream.Length);
 				tempStream.Seek(0, SeekOrigin.Begin);
 
 				//NOTE: without ZSTD_endStream call on compression
@@ -198,11 +199,11 @@ namespace ZstdNet.Tests
 				using(var decompressionStream = new DecompressionStream(tempStream))
 					decompressionStream.CopyTo(resultStream);
 
-				Assert.AreEqual(testBuffer, resultStream.ToArray());
+				CollectionAssert.AreEqual(testBuffer, resultStream.ToArray());
 			}
 		}
 
-		[Test]
+		[TestMethod]
 		public void CompressionImprovesWithDictionary()
 		{
 			var dict = TrainDict();
@@ -220,7 +221,7 @@ namespace ZstdNet.Tests
 			using(var compressionStream = new CompressionStream(dictResultStream, compressionOptions))
 				dataStream.CopyTo(compressionStream);
 
-			Assert.Greater(normalResultStream.Length, dictResultStream.Length);
+			Assert.IsGreaterThan(dictResultStream.Length, normalResultStream.Length);
 
 			dictResultStream.Seek(0, SeekOrigin.Begin);
 
@@ -228,10 +229,10 @@ namespace ZstdNet.Tests
 			using(var decompressionStream = new DecompressionStream(dictResultStream, new DecompressionOptions(dict)))
 				decompressionStream.CopyTo(resultStream);
 
-			Assert.AreEqual(dataStream.ToArray(), resultStream.ToArray());
+			CollectionAssert.AreEqual(dataStream.ToArray(), resultStream.ToArray());
 		}
 
-		[Test]
+		[TestMethod]
 		public void CompressionShrinksData()
 		{
 			var dataStream = DataGenerator.GetLargeStream(DataFill.Sequential);
@@ -240,10 +241,10 @@ namespace ZstdNet.Tests
 			using(var compressionStream = new CompressionStream(resultStream))
 				dataStream.CopyTo(compressionStream);
 
-			Assert.Greater(dataStream.Length, resultStream.Length);
+			Assert.IsGreaterThan(resultStream.Length, dataStream.Length);
 		}
 
-		[Test]
+		[TestMethod]
 		public void RoundTrip_BatchToStreaming()
 		{
 			var data = DataGenerator.GetLargeBuffer(DataFill.Sequential);
@@ -256,10 +257,10 @@ namespace ZstdNet.Tests
 			using(var decompressionStream = new DecompressionStream(new MemoryStream(compressed)))
 				decompressionStream.CopyTo(resultStream);
 
-			Assert.AreEqual(data, resultStream.ToArray());
+			CollectionAssert.AreEqual(data, resultStream.ToArray());
 		}
 
-		[Test]
+		[TestMethod]
 		public void RoundTrip_StreamingToBatch()
 		{
 			var dataStream = DataGenerator.GetLargeStream(DataFill.Sequential);
@@ -272,14 +273,28 @@ namespace ZstdNet.Tests
 			using(var decompressor = new Decompressor())
 				Assert.AreEqual(dataStream.Length, decompressor.Unwrap(tempStream.ToArray(), resultBuffer, 0, false));
 
-			Assert.AreEqual(dataStream.ToArray(), resultBuffer);
+			CollectionAssert.AreEqual(dataStream.ToArray(), resultBuffer);
 		}
 
-		[Test, Combinatorial, Parallelizable(ParallelScope.Children)]
-		public void RoundTrip_StreamingToStreaming(
-			[Values(false, true)] bool useDict, [Values(false, true)] bool advanced,
-			[Values(1, 2, 7, 101, 1024, 65535, DataGenerator.LargeBufferSize, DataGenerator.LargeBufferSize + 1)] int zstdBufferSize,
-			[Values(1, 2, 7, 101, 1024, 65535, DataGenerator.LargeBufferSize, DataGenerator.LargeBufferSize + 1)] int copyBufferSize)
+		public static IEnumerable<object[]> GetCombinations()
+		{
+			var useDict = new[] { false, true };
+			var advanced = new[] { false, true };
+			var zstdBufferSize = new[] {1, 2, 7, 101, 1024, 65535, DataGenerator.LargeBufferSize, DataGenerator.LargeBufferSize + 1};
+			var copyBufferSize = new[] {1, 2, 7, 101, 1024, 65535, DataGenerator.LargeBufferSize, DataGenerator.LargeBufferSize + 1};
+
+			var combinations = from p1 in useDict
+				from p2 in advanced
+				from p3 in zstdBufferSize
+				from p4 in copyBufferSize
+				select new object[] { p1, p2, p3, p4 };
+
+			return combinations;
+		}
+
+		[TestMethod]
+		[DynamicData(nameof(GetCombinations))]
+		public void RoundTrip_StreamingToStreaming(bool useDict, bool advanced, int zstdBufferSize, int copyBufferSize)
 		{
 			var dict = useDict ? TrainDict() : null;
 			var testStream = DataGenerator.GetLargeStream(DataFill.Sequential);
@@ -307,14 +322,12 @@ namespace ZstdNet.Tests
 					resultStream.Write(buffer, offset, bytesRead);
 			}
 
-			Assert.AreEqual(testStream.ToArray(), resultStream.ToArray());
+			CollectionAssert.AreEqual(testStream.ToArray(), resultStream.ToArray());
 		}
 
-		[Test, Combinatorial, Parallelizable(ParallelScope.Children)]
-		public async Task RoundTrip_StreamingToStreamingAsync(
-			[Values(false, true)] bool useDict, [Values(false, true)] bool advanced,
-			[Values(1, 2, 7, 101, 1024, 65535, DataGenerator.LargeBufferSize, DataGenerator.LargeBufferSize + 1)] int zstdBufferSize,
-			[Values(1, 2, 7, 101, 1024, 65535, DataGenerator.LargeBufferSize, DataGenerator.LargeBufferSize + 1)] int copyBufferSize)
+		[TestMethod]
+		[DynamicData(nameof(GetCombinations))]
+		public async Task RoundTrip_StreamingToStreamingAsync(bool useDict, bool advanced, int zstdBufferSize, int copyBufferSize)
 		{
 			var dict = useDict ? TrainDict() : null;
 			var testStream = DataGenerator.GetLargeStream(DataFill.Sequential);
@@ -342,11 +355,15 @@ namespace ZstdNet.Tests
 					await resultStream.WriteAsync(buffer, offset, bytesRead);
 			}
 
-			Assert.AreEqual(testStream.ToArray(), resultStream.ToArray());
+			CollectionAssert.AreEqual(testStream.ToArray(), resultStream.ToArray());
 		}
 
-		[Test, Explicit("stress")]
-		public void RoundTrip_StreamingToStreaming_Stress([Values(true, false)] bool useDict, [Values(true, false)] bool async)
+		[TestMethod, CICondition(ConditionMode.Exclude, IgnoreMessage = "stress"), TestCategory("Explicit")]
+		[DataRow(true, true)]
+		[DataRow(true, false)]
+		[DataRow(false, true)]
+		[DataRow(false, false)]
+		public void RoundTrip_StreamingToStreaming_Stress(bool useDict, bool async)
 		{
 			long i = 0;
 			var dict = useDict ? TrainDict() : null;
@@ -392,7 +409,7 @@ namespace ZstdNet.Tests
 						}
 					}
 
-					Assert.AreEqual(testStream.ToArray(), resultStream.ToArray());
+					CollectionAssert.AreEqual(testStream.ToArray(), resultStream.ToArray());
 				});
 			GC.KeepAlive(compressionOptions);
 			GC.KeepAlive(decompressionOptions);

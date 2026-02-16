@@ -1,36 +1,38 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-		<Version>1.4.5</Version>
-		<TargetFrameworks>net45;netstandard2.0;netstandard2.1</TargetFrameworks>
-		<Title>ZstdNet</Title>
-		<PackageId>ZstdNet</PackageId>
-		<Company>SKB Kontur</Company>
-		<Authors>SKB Kontur</Authors>
-		<Description>Zstd compression library wrapper for .NET</Description>
-		<Copyright>Copyright © SKB Kontur 2016-present</Copyright>
-		<PackageLicenseUrl>https://github.com/skbkontur/ZstdNet/blob/master/LICENSE</PackageLicenseUrl>
-		<PackageProjectUrl>https://github.com/skbkontur/ZstdNet</PackageProjectUrl>
-		<PackageTags>zstd zstandard compression</PackageTags>
-		<LangVersion>7.2</LangVersion>
-		<Platforms>AnyCPU;x64;x86</Platforms>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
-	</PropertyGroup>
-	<ItemGroup>
-		<None Include="build\x64\libzstd.dll">
-			<Link>x64\%(FileName)%(Extension)</Link>
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
-		<None Include="build\x86\libzstd.dll">
-			<Link>x86\%(FileName)%(Extension)</Link>
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</None>
-	</ItemGroup>
-	<ItemGroup>
-		<None Include="build\**\*" Pack="true" PackagePath="build\" />
-		<None Include="..\LICENSE" Pack="true" PackagePath="lib\" />
-	</ItemGroup>
-	<ItemGroup Condition="'$(TargetFramework)' == 'net45' OR '$(TargetFramework)' == 'netstandard2.0'">
-		<PackageReference Include="System.Memory" Version="4.*" />
-	</ItemGroup>
+
+  <PropertyGroup>
+    <Version>1.5.7-rc2</Version>
+    <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
+    <Title>ZstdNet</Title>
+    <PackageId>ZstdNet</PackageId>
+    <Company>SKB Kontur</Company>
+    <Authors>SKB Kontur</Authors>
+    <Description>Zstd compression library wrapper for .NET</Description>
+    <Copyright>Copyright © SKB Kontur 2016-2026</Copyright>
+    <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/skbkontur/ZstdNet</PackageProjectUrl>
+    <PackageTags>zstd zstandard compression</PackageTags>
+    <LangVersion>7.3</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
+    <EnablePackageValidation>true</EnablePackageValidation>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <Deterministic>true</Deterministic>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="build/*.targets" Pack="true" PackagePath="build/" />
+    <None Include="runtimes/**/*" Pack="true" CopyToOutputDirectory="PreserveNewest" PackagePath="runtimes/" />
+    <None Include="../LICENSE" Pack="true" PackagePath="/" />
+    <None Include="../README.md" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="System.Memory" Version="4.6.3" />
+  </ItemGroup>
+
 </Project>

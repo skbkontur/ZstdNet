@@ -1,24 +1,35 @@
 ZstdNet
 =======
 
+[![Build and test](https://github.com/skbkontur/ZstdNet/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/skbkontur/ZstdNet/actions/workflows/build-and-test.yml)
 [![NuGet](https://img.shields.io/nuget/v/ZstdNet.svg)](https://www.nuget.org/packages/ZstdNet/)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/ZstdNet.svg)](https://www.nuget.org/packages/ZstdNet)
 
-**ZstdNet** is a wrapper of **Zstd** native library for .NET languages. It has the following features:
+**ZstdNet** is a wrapper of **Zstd** native library for .NET languages targeting `netstadard2.{0|1}`.
+ZstdNet NuGet package includes pre-built native shared libraries for [various platforms](.github/workflows/build-native.yml), including `win`, `linux`, `osx`.
 
-* Compression and decompression of byte arrays
+The package relies on the [dotnet runtime identifier resolution mechanism](https://learn.microsoft.com/en-us/dotnet/core/rid-catalog).
+For .NET Framework, the package provides a [targets](ZstdNet/build/ZstdNet.targets) fallback, which requires an explicit selection of the platform — `x86`, `x64` or `ARM64`).
+
+If you need to resolve native dependency at runtime, you can use the `NativeLibrary.SetDllImportResolver` (see an [example](ZstdNet.Tests/NativeResolver.cs)).
+And for .NET Framework — `SetDllDirectory` from `kernel32.dll`.
+
+Provenance attestation is enabled for all artifacts in this repository including native libs, see page [Attestations](https://github.com/skbkontur/ZstdNet/attestations).
+
+### Features
+
+* Compression and decompression of byte arrays and `Span<byte>`
 * Streaming compression and decompression
-* Generation of Dictionaries from a collection of samples
+* Advanced parameters support
+* Generation of dictionaries
 
 Take a look on a library reference or unit tests to explore its behavior in different situations.
 
 Zstd
 ----
 
-**Zstd**, short for Zstandard, is a fast lossless compression algorithm, which
-provides both good compression ratio _and_ speed for your standard compression
-needs. "Standard" translates into everyday situations which neither look for
-highest possible ratio (which LZMA and ZPAQ cover) nor extreme speeds (which
-LZ4 covers). Zstandard is licensed under [BSD 3-Clause License](ZstdNet/build/LICENSE).
+**Zstandard**, or **zstd** as short version, is a fast lossless compression algorithm,
+targeting real-time compression scenarios at zlib-level and better compression ratios.
 
 **Zstd** is initially developed by Yann Collet and the source is available at:
 https://github.com/facebook/zstd
@@ -33,19 +44,13 @@ http://fastcompression.blogspot.ru/2016/02/compressing-small-data.html
 Reference
 ---------
 
-### Requirements
-
-*ZstdNet* requires *libzstd* >= v1.4.0. Both 32-bit and 64-bit versions are supported.
-The corresponding DLLs are included in this repository cross-compiled using
-`(i686|x86_64)-w64-mingw32-gcc -DZSTD_MULTITHREAD -DZSTD_LEGACY_SUPPORT=0 -pthread -s`.
-Note that `ZSTD_LEGACY_SUPPORT=0` means "do not support legacy formats" to minimize the binary size.
-
 ### Exceptions
 
 The wrapper throws `ZstdException` in case of malformed data or an error inside *libzstd*.
 If the given destination buffer is too small, `ZstdException` with `ZSTD_error_dstSize_tooSmall`
 error code is thrown away.
-Check [zstd_errors.h](https://github.com/facebook/zstd/blob/v1.4.5/lib/common/zstd_errors.h#L52) for more info.
+
+Check [zstd_errors.h](https://github.com/facebook/zstd/blob/v1.5.7/lib/zstd_errors.h#L60) for more info.
 
 ### Compressor class
 
@@ -148,7 +153,7 @@ performance and memory overhead.
     - `IReadOnlyDictionary<ZSTD_cParameter, int> advancedParams` &mdash; advanced API provides a way
       to set specific parameters during compression. For example, it allows you to compress with multiple threads,
       enable long distance matching mode and more.
-      Check [zstd.h](https://github.com/facebook/zstd/blob/v1.4.5/lib/zstd.h#L265) for additional info.
+      Check [zstd.h](https://github.com/facebook/zstd/blob/v1.5.7/lib/zstd.h#L349) for additional info.
 
   Specified options will be exposed in read-only fields.
 
@@ -266,7 +271,7 @@ performance and memory overhead.
       Default is `null` (no dictionary).
     - `IReadOnlyDictionary<ZSTD_dParameter, int> advancedParams` &mdash; advanced decompression API
       that allows you to set parameters like maximum memory usage.
-      Check [zstd.h](https://github.com/facebook/zstd/blob/v1.4.5/lib/zstd.h#L513) for additional info.
+      Check [zstd.h](https://github.com/facebook/zstd/blob/v1.5.7/lib/zstd.h#L640) for additional info.
 
   Specified options will be exposed in read-only fields.
 
@@ -295,6 +300,6 @@ performance and memory overhead.
 Wrapper Authors
 ---------------
 
-Copyright (c) 2016-present [SKB Kontur](https://kontur.ru/eng/about)
+Copyright (c) 2016-2026 [SKB Kontur](https://kontur.ru/eng/about)
 
 *ZstdNet* is distributed under [BSD 3-Clause License](LICENSE).
