@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>1.5.7-rc1</Version>
+    <Version>1.5.7-rc2</Version>
     <TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
     <Title>ZstdNet</Title>
     <PackageId>ZstdNet</PackageId>
@@ -21,6 +21,7 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <Deterministic>true</Deterministic>
+    <DebugType>embedded</DebugType>
   </PropertyGroup>
 
   <ItemGroup>
