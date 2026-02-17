@@ -1,5 +1,4 @@
-ZstdNet
-=======
+# ZstdNet &ensp;[![License](https://img.shields.io/github/license/skbkontur/ZstdNet.svg)](https://raw.githubusercontent.com/skbkontur/ZstdNet/master/LICENSE)
 
 [![Build and test](https://github.com/skbkontur/ZstdNet/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/skbkontur/ZstdNet/actions/workflows/build-and-test.yml)
 [![NuGet](https://img.shields.io/nuget/v/ZstdNet.svg)](https://www.nuget.org/packages/ZstdNet/)
@@ -25,8 +24,7 @@ Provenance attestation is enabled for all artifacts in this repository including
 
 Take a look on a library reference or unit tests to explore its behavior in different situations.
 
-Zstd
-----
+## Zstd
 
 **Zstandard**, or **zstd** as short version, is a fast lossless compression algorithm,
 targeting real-time compression scenarios at zlib-level and better compression ratios.
@@ -41,8 +39,7 @@ http://fastcompression.blogspot.com/2015/01/zstd-stronger-compression-algorithm.
 The benefits of the dictionary mode are described here:
 http://fastcompression.blogspot.ru/2016/02/compressing-small-data.html
 
-Reference
----------
+## Reference
 
 ### Exceptions
 
@@ -297,8 +294,7 @@ performance and memory overhead.
     - `int dictCapacity` &mdash; maximal dictionary size in bytes.
       Default is `DictBuilder.DefaultDictCapacity`, currently 110 KiB (the default in zstd utility).
 
-Wrapper Authors
----------------
+## Wrapper Authors
 
 Copyright (c) 2016-2026 [SKB Kontur](https://kontur.ru/eng/about)
 
