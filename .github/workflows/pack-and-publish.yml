@@ -34,7 +34,7 @@ jobs:
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: 22015842187 # https://github.com/skbkontur/ZstdNet/actions/runs/22015842187
+          run-id: 22088530106 # https://github.com/skbkontur/ZstdNet/actions/runs/22088530106
           merge-multiple: true
           path: ./ZstdNet/
 
